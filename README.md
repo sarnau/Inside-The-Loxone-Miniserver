@@ -11,6 +11,7 @@ I've split up the documentation into separate parts to make it easier to read, a
 - Hardware
     - [Loxone Miniserver Hardware](LoxoneMiniserverHardware.md)
     - [Loxone Miniserver Go Hardware](LoxoneMiniserverGoHardware.md)
+    - [Loxone Extensions and devices debug connectors](LoxoneDebugConnectors.md)
 - Loxone Link Protocol
     - [Loxone Link Hardware](LoxoneLinkHardware.md)
     - [Loxone Link Protocol Introduction](LoxoneLinkProtocolIntro.md)
