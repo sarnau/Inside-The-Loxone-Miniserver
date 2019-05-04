@@ -5,7 +5,7 @@ To overcome the limitations of the legacy protocol, the NAT protocol was introdu
 The following extensions are using the NAT protocol:
 - Loxone Tree Extension
 - Loxone Internorm Extension
-- Loxone DI Extension
+- Loxone DI/AI/AO Extensions
 - all Tree devices behind a Tree extensions
 
 The CAN object identifier is 29 bits long and follows a simply scheme for the NAT extensions:
@@ -116,10 +116,19 @@ Several commands contain a reason value telling why the command was send. Bit 5 
 
 ## Device Type [dt]
 
-The 4-bit devices type from legacy devices was replaced by 16-bit value in NAT extensions/devices. The values 0x00…0x0f are shared, but any value above is only available for NAT extensions/devices. Tree devices always have bit 15 set.
+The 4-bit devices type from legacy devices was replaced by 16-bit value in NAT extensions/devices. Loxone Link bus devices have bit 15 cleared, while Tree devices have bit 15 set.
 
 | Device Type | Extension |
 | --------- | -------- |
+|  `0x01`   | Air Base Extension V2 (unreleased?) |
+|  `0x04`   | DMX Extension V2 (unreleased?) |
+|  `0x05`   | 1-Wire Extension V2 (unreleased?) |
+|  `0x06`   | RS232 Extension V2 (unreleased?) |
+|  `0x07`   | RS485 Extension V2 (unreleased?) |
+|  `0x09`   | Modbus Extension V2 (unreleased?) |
+|  `0x0A`   | RGBW 24V Dimmer V2 (unreleased?) |
+|  `0x0B`   | Relay Extension V2 (unreleased?) |
+|  `0x0F`   | Fröling Extension V2 (unreleased?) |
 |  `0x11`   | reserved for the Tree Bus |
 |  `0x12`   | Internorm Extension |
 |  `0x13`   | Tree Base Extension |
@@ -150,6 +159,8 @@ The 4-bit devices type from legacy devices was replaced by 16-bit value in NAT e
 |  `0x8015` | Integrated Window Contact Tree |
 |  `0x8016` | LED Spot RGBW Tree |
 |  `0x8017` | LED Spot WW Tree |
+|  `0x8018` | Power Tree (unreleased) |
+|  `0x8019` | Nano Relay 2 Tree |
 
 
 ## NAT Commands
