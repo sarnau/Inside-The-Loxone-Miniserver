@@ -34,9 +34,11 @@ This is a 32-bit ARM Cortex M3 CPU with 128kb Flash and 32kb SRAM. It has a buil
     - IR Extension (not sure about this one, it clearly has a smaller boot loader - only 4kb, instead of 8kb)
 
     The memory layout is as follows:
-    - `0x00000000-0x00001FFF` : boot loader (8kb, the IR Extension has only 4kb of boot loader)
-    - `0x00002000-0x00011FFF` : firmware (contained in the `*.upd` files, the IR Extension has starts at 0x1000)
-    - `0x00012000-0x00033FFF` : firmware update area
+    - `0x00000000-0x00001FFF` : FLASH 8kb boot loader
+    - `0x00002000-0x0000FFFF` : FLASH 56kb firmware area (contained in the `*.upd` files)
+    - `0x00010000-0x00011FFF` : FLASH configuration variables
+    - `0x00012000-0x0003FFFF` : FLASH firmware update area
+    - `0x01000000-0x01002BFF` : TI Stellaris Factory ROM
     - `0x20000000-0x20007FFF` : 32kb SRAM
     - `0x40000000-0x43FFFFFF` : Peripherals
     - `0xE0000000-0xE0040FFF` : ARM special area
@@ -57,8 +59,13 @@ This is a 32-bit ARM Cortex M4 CPU with 256kb Flash and 40kb SRAM. It also has a
     - All Tree devices
 
     The memory layout is as follows:
-    - `0x08000000-0x080007FF` : boot loader (2kb)
-    - `0x08000800-0x0803FFFF` : firmware (contained in the `*.upd` files)
+    - `0x08000000-0x080007FF` : FLASH 2kb boot loader (contains the serial number and hardware type)
+    - `0x08000800-0x0801D7FF` : FLASH 116kb firmware area (contained in the `*.upd` files)
+    - `0x0801D800-0x0801DFFF` : FLASH old location of configuration variables? Now unused.
+    - `0x0801E000-0x0803AFFF` : FLASH firmware update area
+    - `0x0803B000-0x0803B7FF` : FLASH configuration variables (page 1)
+    - `0x0803B800-0x0803BFFF` : FLASH configuration variables (page 2)
+    - `0x0803C000-0x0803FFFF` : FLASH unused
     - `0x1FFFF800-0x1FFFD7FF` : Option bytes and System memory
     - `0x20000000-0x20009FFF` : 40kb SRAM
     - `0x40000000-0x500007FF` : Peripherals
@@ -74,8 +81,13 @@ The module is a secure low-power wireless IPv6 communication module supporting t
     - All Air devices
 
     The memory layout is as follows:
-    - `0x08000000-0x08000FFF` : boot loader (4kb)
-    - `0x08000800-0x0803FFFF` : firmware (contained in the `*.upd` files)
+    - `0x08000000-0x08000FFF` : FLASH boot loader (4kb)
+    - `0x08001000-0x0801DFFF` : FLASH 116kb firmware area (contained in the `*.upd` files)
+    - `0x0801E000-0x0803AFFF` : FLASH firmware update area
+    - `0x0803B000-0x0803B7FF` : FLASH configuration variables (page 1)
+    - `0x0803B800-0x0803BFFF` : FLASH configuration variables (page 2)
+    - `0x0803C000-0x0803F7FF` : FLASH unused
+    - `0x0803F800-0x0803FFFF` : FLASH factory configuration
     - `0x1FFFF800-0x1FFFD7FF` : Option bytes and System memory
     - `0x20000000-0x2000BFFF` : 48kb SRAM
     - `0x40000000-0x500007FF` : Peripherals

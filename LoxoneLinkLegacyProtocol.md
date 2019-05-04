@@ -82,16 +82,17 @@ Please remember that commands _from_ extensions always have bit 7 in the command
 |  0x0D   | Idle     | S→E |    |       | delta time since last heartbeat in ms  | Heartbeat sync send about once per minute, used to synchronize the blinking between all extensions. Can be used by extensions to detect an active CAN bus. |
 |  0x0E   | Start    | S→E |    |       | blink position in 6.2ms units | Blink position. This is used to have all LEDs blink out-of-sync. This also triggers an extension to report its status back to the Miniserver after a reboot. |
 |  0x0F   | Idle     | S↔︎E |    |       |       | Alive Reply to a `0x09` command to confirm the connection. |
-|  0x1D   | Loxone Config | S→E |    |       |       | Return diagnostics data, only implemented in a few extension. |
+|  0x1D   | Loxone Config | S↔︎E | flag |       | 32-bit value | Return diagnostics data, only implemented in a few extension. flag==2:more data to come, flag==3:data complete. |
 |  0x2D   | Idle     | S→E | see right  | see right | time in ms since midnight | Heartbeat sync package with time. `(B0/B1 & 0x7fff)` is the current year. `(((B2 & 7)<<1) + (B1 >> 7))` is the current month. `(B2 >> 3)` the current day. Extensions seems to ignore that command. |
 |  0x34   | Update   | S→E | see right | see right | 32 bit word | Write 32 bit word at 24 bit address (B0-B2). If the low-byte of an address is 0x00, the whole page will be erased first. Used if a CRC error was reported back to send certain bytes again. |
+|  0x36   |          | S←E |    | settings version | settings CRC32 | Report current settings to the Miniserver. Send during boot, after being identified by the Miniserver. Forces the Miniserver to upload the configuration, if it detects a mismatch. |
 |  0x37   | Start    | S→E |    |       |       | Park all devices (multicast command as well). Send to all extensions, which are known, but unused by the Miniserver configuration. Identical implementation as `0x0C`. |
 |  0x38   | Loxone Config | S←E | 0x00 | B1:CAN Receiver Errors, B2:CAN Transmitter Errors | CAN error count | Reply package containing the CAN diagnostics. |
 |  0x39   | Loxone Config | S→E |    |       |       | Request CAN diagnosis package - send continuously during 'Loxone Link Diagnostics' |
 |  0x53   | Idle     | S←E |    |       | temperature | Overheating warning from an extension. More explanation below. |
 |  0x54   | Update   | S→E | 0x00 | page number | CRC32 value | Send page CRC to verify update |
 |  0x5B   | Update   | S→E |    |       |       | Mute an extension. The extension will no longer send any messages, not triggered by a specific request (alive messages, overload monitoring, CAN diagnostics) |
-|  0x78   | Start    | S↔︎E | see right | see right | see right | Sends the current configuration checksum with the value in `B0-B6` (7 bytes), an extension can send zeros, if there is no configuration. |
+|  0x78   | Start    | S↔︎E | see right | see right | see right | Send a 7 byte checksum to the extension, if different: update the checksum and write settings to FLASH. An extension can send back zeros, if there is no valid configuration. |
 |  0x79   | Start    | S→E | see right | see right | see right | Request the current configuration checksum. This allows the Miniserver to detect, if the configuration needs to be updated. If the extension doesn't respond this this, it will get a new configuration. |
 
 Interestingly it is possible to send a `0x2D` command as an extension, the Miniserver will  detect it as a DCF77 package and set its internal clock. It seems that Loxone at some point had a DCF77 receiver planned or developed, but eventually decided that NTP is good enough. This command can only be send _once_ after a reboot of the Miniserver.
@@ -183,5 +184,10 @@ If you try to emulate a device on the CAN bus, you might need to make sure to be
 
 ## Device specific commands
 
-- [Loxone Relay Extension](LoxoneLinkLegacyExtensionRelay.md)
 - [Loxone Extension](LoxoneLinkLegacyExtension.md)
+- [Loxone Relay Extension](LoxoneLinkLegacyExtensionRelay.md)
+- [Loxone RS232 Extension](LoxoneLinkLegacyExtensionRS232.md)
+- [Loxone RS485 Extension](LoxoneLinkLegacyExtensionRS485.md)
+- [Loxone DMX Extension](LoxoneLinkLegacyExtensionDMX.md)
+- [Loxone 1-Wire Extension](LoxoneLinkLegacyExtension1Wire.md)
+- [Loxone Modbus Extension](LoxoneLinkLegacyExtensionModbus.md)

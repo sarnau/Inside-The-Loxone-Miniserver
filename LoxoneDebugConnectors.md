@@ -97,7 +97,7 @@ I am looking at the Loxone Air Door/Windowcontact here as an example:
     
 ### SWD
 
-For this CPU only SWD is available on the connector. The connector pins 1-6 are identical to the STM32F3 connector, but the connector has to be flipped by 180 degrees.
+For this CPU only SWD is available on the connector. The connector pins 1-6 are identical to the STM32F3 connector, but the connector has to be flipped by 180 degrees. This CPU type is very rare, but it is quite similar to the STM32F302CCT6, which works for SWO debugging.
 
 | Pin |     | ZWIR4512AC2 Pin       |
 | :-: | :-: | :----------------- |
