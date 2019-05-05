@@ -194,7 +194,7 @@ Commands fall into 3 groups:
 |  `0x0C`   | Timesync | S→E | Heartbeat sync package with time. `(B0/B1 & 0x7fff)` is the current year. `(((B2 & 7)<<1) + (B1 >> 7))` is the current month. `(B2 >> 3)` the current day. val32 the ms since midnight. Devices use it to synchronize their LED blinking. |
 |  `0x10`   | Identify | S→E | Broadcast by Miniserver, if inside the Loxone Config software an extension/device is selected. The LED will flicker very quickly to help identify it. The serial number is in val32 (deselected the device if the serial number doesn't match). `val16` is a timeout in seconds, I don't think it is actually used. |
 |  `0x11`   | Send Config | S→E | Fragmented package, specific configuration for an extension/device |
-|  `0x12`   | Webservice Request | S↔E | `B0`:length of a string, `B1…`: ASCII-string, zero terminated. Up to ~131 characters per packet. Several packets in a row a possible. Can be used to send commands _to_ a extension/device. |
+|  `0x12`   | Webservice Request | S↔E | `B0`:0x00, `B1`:number of bytes starting `B2`, `B2…`: ASCII-string, zero terminated. Up to ~131 characters per packet. Several packets in a row a possible. Can be used to send commands _to_ a extension/device. |
 |  `0x13`   | Logging | S←E | A string, like in "Webservice Request", used for error messages from an extension/device |
 |  `0x15`   | Internorm Monitor | ? | ? |
 |  `0x16`   | CAN Diagnostics Reply | S←E | Reply from an extension/device with CAN diagnostics |
