@@ -373,7 +373,7 @@ To avoid further updates, an extension/device could just take the new version fr
 
 ## Configurations in devices
 
-A configuration for a device is stored in flash memory after uploaded by the Miniserver. The Miniserver checks the STM32 CRC and the version number of the configuration and re-uploads them, if necessary. For the calculation the size of the configuration is rounded up to the next 4 bytes and then the last 4 bytes are ignored from the calculation.
+A configuration for a device is stored in flash memory after uploaded by the Miniserver. The Miniserver checks the STM32 CRC and the version number of the configuration and re-uploads them, if necessary. For the calculation the size of the configuration is rounded up to the next 4 bytes and then the last 4 bytes are ignored from the calculation and are always 0x00000000.
 
 Configurations in devices all seem to share a similar header. When describing devices you can assume that the first 8 bytes are the same.
 
@@ -384,3 +384,8 @@ Configurations in devices all seem to share a similar header. When describing de
 | 2       | Blink synchronization offset of the LED, can be 0xFF, if the device doesn't have a normally visible LED, e.g. the Touch devices |
 | 3       | unused, 0x00 |
 | 4..7    | Time in seconds after the last message from the Miniserver, the Miniserver is considered offline. 10% before reaching this limit, an Alive packet is sent out, which should trigger a reply. That said: the time sync messages every minute will extent the timeout, so every value above 60s seems overkill. The default is 900s. |
+
+
+## Device specific commands
+
+- [Loxone DI Extension](LoxoneLinkNATExtensionDI.md)
