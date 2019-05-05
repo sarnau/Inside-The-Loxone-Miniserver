@@ -6,6 +6,28 @@ This extension is from the hardware standpoint identical to the [RS485 extension
 
 The Modbus Extension only supports a limited number of write functions. Because of that, I have simply listed them all, which is much easier to read than trying to understand the Loxone documentation.
 
+The extension listens to 0x5D..0x62, which are all used to control actuators (= setting registers on the Modbus). The parameters are as such: B0=1, B1/B2 the 16-bit register number. B3/B4 or B3-B6: 2 or 4 bytes of data. The commands are converted into the following Modbus functions. Warning: the values are in big-endian format!
+
+Digital Actuator:
+- `0x5D`: Write single coil (5), 2 bytes (ON:0xFF,0x00 OFF:0x00,0x00)
+- `0x5E`: Preset single register (6), 2 bytes (ON:0x0001 OFF:0x0000)
+- `0x63`: Force multiple coils (15), 2 bytes (ON:0xFF,0x00 OFF:0x00,0x00)
+- `0x5F`: Preset multiple registers (16), 2 bytes (ON:0x0001 OFF:0x0000)
+
+Analog Actuator with 16-bit unsigned integers (B3/B4:aabb):
+- `0x5D`: Write single coil (5), 2 bytes
+- `0x5E`: Preset single register (6), 2 bytes
+- `0x63`: Force multiple coils (15), 2 bytes
+- `0x5F`: Preset multiple registers (16), 2 bytes
+
+Analog Actuator with 32-bit values (B3-B6:aabbccdd):
+- `0x5D`: Write single coil (5), 2 bytes
+- `0x61`: Preset single register (6), 4 bytes
+- `0x63`: Force multiple coils (15), 2 bytes
+- `0x62`: Preset multiple registers (16), 4 bytes
+
+32-bit floating point numbers are transmitted as IEEE–754 32-bit values, again: in big-endian!
+
 | Command | Modbus write function        | Modbus telegram    |
 | ------- | ---------------------------- | ------------------ |
 |  0x5D   | Single Coil                  | `B0` 0x05 `B1` `B2` `B3` `B4` CRC16-Modbus |
