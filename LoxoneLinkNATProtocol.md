@@ -389,3 +389,5 @@ Configurations in devices all seem to share a similar header. When describing de
 ## Device specific commands
 
 - [Loxone DI Extension](LoxoneLinkNATExtensionDI.md)
+- [Loxone AI Extension](LoxoneLinkNATExtensionAI.md)
+- [Loxone AO Extension](LoxoneLinkNATExtensionAO.md)
