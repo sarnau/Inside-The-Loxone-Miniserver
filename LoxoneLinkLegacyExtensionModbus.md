@@ -79,16 +79,16 @@ For any other function code:
 
 The reply is parsed (based on the function code and the bits in the polling cycle flags) and send back to the Miniserver. If an error occurs, an error command is reported back:
 
-| Command |             B0 | val16 |           val32 | Description |
-| ------- | -------------- | ----- | --------------- | ----------- |
-|  0x1C   | Modbus address |   0   | Value           | Confirmation from a write function (Write Single Coil, Write Single Register, Write Multiple Coils, Write Multiple Registers) with the new value |
-|  0x1C   | Modbus address |   1   | Modbus register | No response from the Modbus device |
-|  0x1C   | Modbus address |   2   | Modbus register | Package had a CRC error |
-|  0x1C   | Modbus address |   3   | Modbus register | Invalid response, e.g. from a different Modbus device or just garbage with a correct CRC |
-|  0x1C   | Modbus address |   4   | Modbus register | Invalid package length |
-|  0x1C   | Modbus address |   5   | Modbus register | Unexpected error, e.g. an unknown function code |
-|  0x1C   | Modbus address |   6   | Modbus register | TX queue overrun (not sure if this one can happen) |
-|  0x5C   | Modbus address |   0   | Value           | The non-error reply contains the requested 32-bit value |
+| Command |             B0 | B1/B2 |      B2/B3      |     B4/B6    | Description |
+| ------- | -------------- | ----- | --------------- | ------------ | ----------- |
+|  0x1C   | Modbus address |   0   | Value Low       |  Value High  | Confirmation from a write function (Write Single Coil, Write Single Register, Write Multiple Coils, Write Multiple Registers) with the new value |
+|  0x1C   | Modbus address |   1   | Modbus register | following 2 bytes after Modbus register | No response from the Modbus device |
+|  0x1C   | Modbus address |   2   | Modbus register |    0x0000    | Package had a CRC error |
+|  0x1C   | Modbus address |   3   | Modbus register | 16-bit value | Invalid response, e.g. from a different Modbus device or just garbage with a correct CRC |
+|  0x1C   | Modbus address |   4   | Modbus register |    0x0000    | Invalid package length |
+|  0x1C   | Modbus address |   5   | Modbus register | 16-bit value | Unexpected error, e.g. an unknown function code |
+|  0x1C   | Modbus address |   6   |        ?        |       ?      | TX queue overrun (not sure if this one can happen) |
+|  0x5C   | Modbus address |   0   | Value Low       |   Value High | The non-error reply contains the requested 32-bit value |
 
 The value is send as a 32-bit value, it is extracted from the Modbus package in this way. `pkt` is the received Modbus package as specified in the Modbus documentation.
 
