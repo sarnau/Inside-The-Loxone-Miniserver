@@ -223,15 +223,3 @@ These are somehow not stored in the config, which is version 2 with 000000000000
 ## Integrated Window Contact Tree
 
 An unreleased door handle, which is currently only available as an Air device.
-
-
-
-## AI Extension
-
-
-
-
-## AO Extension
-
-000000000023640101000000
-

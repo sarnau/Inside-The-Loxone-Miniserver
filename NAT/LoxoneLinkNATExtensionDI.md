@@ -1,4 +1,4 @@
-# DI Extension
+# DI Extension (0x14)
 
 The DI Extension is a NAT extension, which one of the most basic ones. It only sends only two messages Digital Value `0x80` and Frequency `0x85`.
 

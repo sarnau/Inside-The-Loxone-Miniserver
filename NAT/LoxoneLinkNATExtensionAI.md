@@ -1,4 +1,4 @@
-# AI Extension
+# AI Extension (0x16)
 
 The AI Extension is a NAT extension, which one of the most basic ones. It only sends only messages Analog Value `0x81`.
 

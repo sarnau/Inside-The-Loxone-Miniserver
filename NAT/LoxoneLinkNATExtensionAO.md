@@ -1,4 +1,4 @@
-# AO Extension
+# AO Extension (0x17)
 
 The AO Extension is a NAT extension, which one of the most basic ones. It only receives Analog Values `0x81` (the scale factor )
 
