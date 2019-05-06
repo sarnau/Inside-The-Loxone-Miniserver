@@ -1,9 +1,5 @@
 # Tree Devices
 
-## Tree Base Extension
-
-No additional configuration. For the full description see the Tree Base Extension chapter.
-
 ## Valve Actuator Tree / Damper Tree
 
 | Type    | Index   | Name        | Dir | Description |
