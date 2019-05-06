@@ -1,8 +1,7 @@
 # Various LED devices
 
-All LED devices and the RGBW dimmer seem to share the same protocol, so I document them all in one document.
+All LED devices seem to share the same protocol, so I document them all in one document.
 
-- RGBW 24V Dimmer Tree (0x800c)
 - LED Surface Mount Spot RGBW Tree (0x8007)
 - LED Surface Mount Spot WW Tree (0x800e)
 - LED Spot RGBW Tree Gen 1 (0x8008)
@@ -14,10 +13,10 @@ All LED devices and the RGBW dimmer seem to share the same protocol, so I docume
 The dimming is updated at a fixed frequency between 123Hz and 1kHz. It seems the frequency can not be changed, but the software would support that.
 
 
-| Command | Dir | Description |
-| ------  | --- | ----------- |
-|    0x84 | S→E | 4 bytes (RGBW) in value32 for standard devices |
-|    0x88 | S→E | 4 bytes (RGBW) in value32 for smart devices |
+|           Type | Dir | Description |
+| -------------- | --- | ----------- |
+|           RGBW | S→E | 4 bytes (RGBW) in value32 for standard devices |
+| Composite RGBW | S→E | 4 bytes (RGBW) in value32 for smart devices |
 
 Standard Device with two actuators:
 Dimmer RGB: RGB=RGB from value32, WW=0
