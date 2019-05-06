@@ -397,3 +397,4 @@ Configurations in devices all seem to share a similar header. When describing de
 - [Loxone Valve Acutator Tree Device](LoxoneLinkNATTreeValveActuator.md)
 - [Loxone Damper Tree Device](LoxoneLinkNATTreeDamper.md)
 - [Loxone LED Devices](LoxoneLinkNATLED.md)
+- [Loxone Room Comfort Sensor](LoxoneLinkNATTreeRoomComfortSensor.md)

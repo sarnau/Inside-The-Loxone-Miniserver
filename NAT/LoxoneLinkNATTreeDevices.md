@@ -48,23 +48,6 @@ Configuration Version 1:
 |   8…11   |  2200 | Filter change interval in hours |
 
 
-## Room Comfort Sensor Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Digital | 0x00    | CO2 status  | S←E | 1:CO2<1500, 2:CO2<=2500, 4:CO2>2500 (unused in Loxone Config) |
-| Analog  | 0x00    | Temperature | S←E | Temperature in Celcius, sent every 10 minutes and if temp changes >1deg |
-| Analog  | 0x01    | Humidity    | S←E | Humidity in Percent, sent every 10 minutes and if hum changes >20% |
-| Analog  | 0x02    | CO2 value   | S←E | CO2 value, send every 15 minutes and if CO2 changes >100, error bits:6:CO2>5000, 7:burn in phase still active |
-| Analog  | 0x03    | CO2 warning | S←E | 1:CO2<1500, 2:CO2<=2500, 3:CO2>2500 (unused in Loxone Config) |
-
-Configuration Version 1:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|  8…11    |    15 | Unknown |
-
-
 ## Alarm Siren Tree
 
 | Type    | Index   | Name        | Dir | Description |

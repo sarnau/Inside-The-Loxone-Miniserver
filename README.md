@@ -33,3 +33,4 @@ I've split up the documentation into separate parts to make it easier to read, a
         - [Loxone Valve Acutator Tree Device](./NAT/LoxoneLinkNATTreeValveActuator.md)
         - [Loxone Damper Tree Device](./NAT/LoxoneLinkNATTreeDamper.md)
         - [Loxone LED Devices](./NAT/LoxoneLinkNATLED.md)
+        - [Loxone Room Comfort Sensor](./NAT/LoxoneLinkNATTreeRoomComfortSensor.md)
