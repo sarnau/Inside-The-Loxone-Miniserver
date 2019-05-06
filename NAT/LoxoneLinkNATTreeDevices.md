@@ -1,17 +1,5 @@
 # Tree Devices
 
-## Valve Actuator Tree / Damper Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Analog  | 0x00    | Percent     | S←E | Valve position in percent (0…100%) |
-
-Configuration Version 2:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|     8    |   101 | 0…100: Loss of Connection Value, 101:Retain Last State |
-
 ## Motion Sensor Tree
 
 | Type    | Index   | Name       | Dir | Description |
@@ -28,57 +16,6 @@ Configuration Version 2:
 02ff00840300000f000000010000000000
 
 
-## Nano DI Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Digital | 0x00    | Inputs      | S←E | Bitmask with the 6 possible inputs  |
-
-Configuration Version 1:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|   8…9    |     0 | Bitmask for frequency-enabled inputs |
-
-
-## LED Surface Mount Spot RGBW/WW Tree, LED Spot RGBW/WW Tree Gen 1/2, LED Pendulum Slim RGBW Tree, RGBW 24V Dimmer Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Composite RGBW | 0x00 | Smart Actuator | S←E | Light settings with RGBW in value32 |
-
-Standard Device with two actuators:
-Dimmer RGB: RGB=RGB from value32, WW=0
-Dimmer WW: RGB=0, WW=W from value32
-
-Standard Device with 4 individual channels:
-Changes in the same cycle will be transmitted as one message!
-
-Smart Device:
-Smart Actuator RGBW: RGBW in value32, Fade Time in value16 in 1/10s
-
-Smart Device with 4 individual channels:
-0x8a Composite White Values:0,80,0,0 FadingTimes:2560,0,0,0>
-
-
-Configuration Version 1:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|        0 | 0…101 | Red: Loss of connection value in % (101% = Retain Last State) |
-|        1 | 0…101 | Green: Loss of connection value in % (101% = Retain Last State) |
-|        2 | 0…101 | Blue: Loss of connection value in % (101% = Retain Last State) |
-|        3 | 0…101 | White: Loss of connection value in % (101% = Retain Last State) |
-|        4 | 0…100 | Red: Fade Rate in % (0%=Jump), Bit 7: Perception correction active |
-|        5 | 0…100 | Green: Fade Rate in % (0%=Jump), Bit 7: Perception correction active |
-|        6 | 0…100 | Blue: Fade Rate in % (0%=Jump), Bit 7: Perception correction active |
-|        7 | 0…100 | White: Fade Rate in % (0%=Jump), Bit 7: Perception correction active |
-|        8 |       | Red: Output type (27=RGB, 35=Red, 36=Green, 37=Blue, 38=WW, 158=Smart RGBW, 159=Smart Red, 160=Smart Green, 161=Smart Blue, 162=Smart WW) |
-|        9 |       | Green: Output type (27=RGB, 35=Red, 36=Green, 37=Blue, 38=WW, 158=Smart RGBW, 159=Smart Red, 160=Smart Green, 161=Smart Blue, 162=Smart WW) |
-|       10 |       | Blue: Output type (27=RGB, 35=Red, 36=Green, 37=Blue, 38=WW, 158=Smart RGBW, 159=Smart Red, 160=Smart Green, 161=Smart Blue, 162=Smart WW) |
-|       11 |       | White: Output type (27=RGB, 35=Red, 36=Green, 37=Blue, 38=WW, 158=Smart RGBW, 159=Smart Red, 160=Smart Green, 161=Smart Blue, 162=Smart WW) |
-
-Smart devices do not use the fade rate from the configuration (it is set to "Jump" and perception correction is always active)
 
 ## LED Ceiling Light Tree
 

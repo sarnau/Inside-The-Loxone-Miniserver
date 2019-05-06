@@ -392,3 +392,8 @@ Configurations in devices all seem to share a similar header. When describing de
 - [Loxone AI Extension](LoxoneLinkNATExtensionAI.md)
 - [Loxone AO Extension](LoxoneLinkNATExtensionAO.md)
 - [Loxone Tree Extension](LoxoneLinkNATTreeExtension.md)
+- [Loxone Touch Tree Device](LoxoneLinkNATTreeTouch.md)
+- [Loxone Touch Pure Tree Device](LoxoneLinkNATTreeTouchPure.md)
+- [Loxone Valve Acutator Tree Device](LoxoneLinkNATTreeValveActuator.md)
+- [Loxone Damper Tree Device](LoxoneLinkNATTreeDamper.md)
+- [Loxone LED Devices](LoxoneLinkNATLED.md)

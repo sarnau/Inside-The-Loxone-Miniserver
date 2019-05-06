@@ -30,3 +30,6 @@ I've split up the documentation into separate parts to make it easier to read, a
         - [Loxone Tree Extension](./NAT/LoxoneLinkNATTreeExtension.md)
         - [Loxone Touch Tree Device](./NAT/LoxoneLinkNATTreeTouch.md)
         - [Loxone Touch Pure Tree Device](./NAT/LoxoneLinkNATTreeTouchPure.md)
+        - [Loxone Valve Acutator Tree Device](./NAT/LoxoneLinkNATTreeValveActuator.md)
+        - [Loxone Damper Tree Device](./NAT/LoxoneLinkNATTreeDamper.md)
+        - [Loxone LED Devices](./NAT/LoxoneLinkNATLED.md)
