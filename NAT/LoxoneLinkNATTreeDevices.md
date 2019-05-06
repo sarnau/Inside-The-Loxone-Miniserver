@@ -48,23 +48,6 @@ Configuration Version 1:
 |   8…11   |  2200 | Filter change interval in hours |
 
 
-## Alarm Siren Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Digital | 0x00    | Tamper Contact | S←E |  |
-| Digital | 0x00    | Alarm       | S←E | Bit 0:Strobe Light, Bit 1:Alarm Sound |
-
-Configuration Version 1:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|   8      |    0  | Unknown |
-|   9…10   |  120  | Maximum audible alarm duration in seconds (0=no limit, 1-1800s) |
-
-Tamper Contact has a special case, because after reboot it triggers. This means the Alarm Siren needs to have some communication.
-
-
 ## Weather Station Tree
 
 | Type    | Index   | Name        | Dir | Description |
