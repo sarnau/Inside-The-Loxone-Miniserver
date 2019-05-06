@@ -28,41 +28,6 @@ Configuration Version 2:
 02ff00840300000f000000010000000000
 
 
-## Touch Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Digital | 0x00    | Touch       | S←E | Button touched, 5-bits for the 5 different touch zones (Top-Left, Top-Right, Center, Bottom-Left, Bottom-Right), multiple buttons are possible  |
-| Analog  | 0x00    | Temperature | S←E | Temperature in Celcius, sent every 10 minutes and after startup |
-| Analog  | 0x01    | Humidity    | S←E | Humidity in Percent, sent every 10 minutes and after startup |
-
-Configuration Version 2:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|  8…11    |    15 | Unknown |
-|   12     |   1/0 | Audible Acknowledgement on/off |
-
-
-## Touch Pure Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Digital | 0x00    | Touch       | S←E | Button touched, 5-bits for the 5 different touch zones (Top-Left, Top-Right, Center, Bottom-Left, Bottom-Right)  |
-| Digital | 0x00    | Backlight   | S→E | Backlight output on/off  |
-| Analog  | 0x00    | Temperature | S←E | Temperature in Celcius, sent every 10 minutes and after startup |
-| Analog  | 0x01    | Humidity    | S←E | Humidity in Percent, sent every 10 minutes and after startup |
-
-TODO: backlight output, probably digital 0x01
-
-Configuration Version 2:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|  8…11    |    15 | Unknown |
-|   12     |   1/0 | Audible Acknowledgement on/off |
-
-
 ## Nano DI Tree
 
 | Type    | Index   | Name        | Dir | Description |

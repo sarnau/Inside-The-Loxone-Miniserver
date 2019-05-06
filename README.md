@@ -28,4 +28,5 @@ I've split up the documentation into separate parts to make it easier to read, a
         - [Loxone AI Extension](./NAT/LoxoneLinkNATExtensionAI.md)
         - [Loxone AO Extension](./NAT/LoxoneLinkNATExtensionAO.md)
         - [Loxone Tree Extension](./NAT/LoxoneLinkNATTreeExtension.md)
-        - [Loxone Link Tree Extensions and Devices](./NAT/LoxoneLinkNATTreeDevices.md)
+        - [Loxone Touch Tree Device](./NAT/LoxoneLinkNATTreeTouch.md)
+        - [Loxone Touch Pure Tree Device](./NAT/LoxoneLinkNATTreeTouchPure.md)
