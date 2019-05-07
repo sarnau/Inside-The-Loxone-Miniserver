@@ -139,7 +139,7 @@ The 4-bit devices type from legacy devices was replaced by 16-bit value in NAT e
 |  `0x8001` | Valve Actuator Tree |
 |  `0x8002` | Motion Sensor Tree |
 |  `0x8003` | Touch Tree |
-|  `0x8004` | Universal Tree |
+|  `0x8004` | Universal Tree (unreleased) |
 |  `0x8005` | Touch Pure Tree |
 |  `0x8006` | LED Ceiling Light Tree |
 |  `0x8007` | LED Surface Mount Spot RGBW Tree |
@@ -156,11 +156,11 @@ The 4-bit devices type from legacy devices was replaced by 16-bit value in NAT e
 |  `0x8012` | Alarm Siren Tree |
 |  `0x8013` | Damper Tree |
 |  `0x8014` | Leaf Tree |
-|  `0x8015` | Integrated Window Contact Tree |
+|  `0x8015` | Integrated Window Contact Tree (unreleased) |
 |  `0x8016` | LED Spot RGBW Tree |
 |  `0x8017` | LED Spot WW Tree |
 |  `0x8018` | Power Tree (unreleased) |
-|  `0x8019` | Nano Relay 2 Tree |
+|  `0x8019` | Nano 2 Relay Tree |
 
 
 ## NAT Commands
@@ -402,3 +402,5 @@ Configurations in devices all seem to share a similar header. When describing de
 - [Loxone Alarm Siren](LoxoneLinkNATTreeAlarmSiren.md)
 - [Loxone Leaf Tree](LoxoneLinkNATTreeLeaf.md)
 - [Loxone Weather Station Tree](LoxoneLinkNATTreeWeatherStation.md)
+- [Loxone Motion Sensor Tree](LoxoneLinkNATTreeMotionSensor.md)
+- [Loxone LED Ceiling Light Tree](LoxoneLinkNATTreeLEDCeilingLight.md)
