@@ -1,6 +1,6 @@
 # LED Ceiling Light Tree (0x8006)
 
-The LED Ceiling Light Tree is similar the the RGBW 24V Dimmer with a motion sensor and a brightness detector.
+The LED Ceiling Light Tree is similar the the RGBW 24V Dimmer and the Motion Sensor Tree.
 
 The dimming is updated at a fixed frequency of 200Hz.
 
@@ -18,7 +18,7 @@ Configuration Version 2:
 
 | Offset   | Value | Description |
 | -------- | ----- | ----------- |
-|     8    |    1  | Sensitivity (0-3) |
+|     8    |    1  | Motion Sensor Sensitivity (0-3) |
 |        9 | 0…101 | Red: Loss of connection value in % (101% = Retain Last State) |
 |       10 | 0…101 | Green: Loss of connection value in % (101% = Retain Last State) |
 |       11 | 0…101 | Blue: Loss of connection value in % (101% = Retain Last State) |
