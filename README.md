@@ -36,3 +36,4 @@ I've split up the documentation into separate parts to make it easier to read, a
         - [Loxone RGBW 24V Dimmer](./NAT/LoxoneLinkNATRGBW24VDimmer.md)
         - [Loxone Room Comfort Sensor](./NAT/LoxoneLinkNATTreeRoomComfortSensor.md)
         - [Loxone Alarm Siren](./NAT/LoxoneLinkNATTreeAlarmSiren.md)
+        - [Loxone Leaf Tree](./NAT/LoxoneLinkNATTreeLeaf.md)

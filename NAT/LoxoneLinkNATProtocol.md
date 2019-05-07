@@ -400,3 +400,4 @@ Configurations in devices all seem to share a similar header. When describing de
 - [Loxone RGBW 24V Dimmer](LoxoneLinkNATRGBW24VDimmer.md)
 - [Loxone Room Comfort Sensor](LoxoneLinkNATTreeRoomComfortSensor.md)
 - [Loxone Alarm Siren](LoxoneLinkNATTreeAlarmSiren.md)
+- [Loxone Leaf Tree](LoxoneLinkNATTreeLeaf.md)
