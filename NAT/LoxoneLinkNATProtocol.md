@@ -397,7 +397,7 @@ Configurations in devices all seem to share a similar header. When describing de
 - [Loxone Valve Acutator Tree Device](LoxoneLinkNATTreeValveActuator.md)
 - [Loxone Damper Tree Device](LoxoneLinkNATTreeDamper.md)
 - [Loxone LED Devices](LoxoneLinkNATLED.md)
-- [Loxone RGBW 24V Dimmer](LoxoneLinkNATRGBW24VDimmer.md)
+- [Loxone RGBW 24V Dimmer](LoxoneLinkNATTreeRGBW24VDimmer.md)
 - [Loxone Room Comfort Sensor](LoxoneLinkNATTreeRoomComfortSensor.md)
 - [Loxone Alarm Siren](LoxoneLinkNATTreeAlarmSiren.md)
 - [Loxone Leaf Tree](LoxoneLinkNATTreeLeaf.md)
