@@ -33,47 +33,6 @@ Configuration Version 2:
 
 01656565650000000000000000
 
-## Leaf Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Digital | 0x00    | ?           | S→E | ? |
-| Analog  | 0x00    | ?           | S→E | ? |
-| Analog  | 0x01    | ?           | S→E | ? |
-
-Configuration Version 1:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|   8…11   |  2200 | Filter change interval in hours |
-
-
-## Weather Station Tree
-
-| Type    | Index   | Name        | Dir | Description |
-| ------  | ------- | ----------- | --- | ----------- |
-| Digital | ?       | ?           | S←E | |
-| Digital | ?       | ?           | S←E | |
-| Digital | ?       | ?           | S←E | |
-| Analog  | ?       | ?           | S←E | |
-| Analog  | ?       | ?           | S←E | |
-| Analog  | ?       | ?           | S←E | |
-
-Analog values: Brightness, Wind Speed, Temperature
-Digital values: Rain, Storm Warning, Sunshine
-
-Configuration Version 2:
-
-| Offset   | Value | Description |
-| -------- | ----- | ----------- |
-|     8    |    5  | Unknown |
-|     9    |    0  | Unknown |
-|    10    |   28  | Unknown |
-|    11    |    0  | Unknown |
-|    12    |   20  | Unknown |
-|    13    |   80  | Sunshine Threshold |
-|    14    |   35  | Storm Warning Threshold (0…150km/h) |
-
 ## NFC Code Touch Tree
 
 Uses an encrypted communication, this device should be on a dedicated Tree branch, otherwise the encryption would be kind of useless, because a hacker could inject the door open messages directly.

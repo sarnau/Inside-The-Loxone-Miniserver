@@ -401,3 +401,4 @@ Configurations in devices all seem to share a similar header. When describing de
 - [Loxone Room Comfort Sensor](LoxoneLinkNATTreeRoomComfortSensor.md)
 - [Loxone Alarm Siren](LoxoneLinkNATTreeAlarmSiren.md)
 - [Loxone Leaf Tree](LoxoneLinkNATTreeLeaf.md)
+- [Loxone Weather Station Tree](LoxoneLinkNATTreeWeatherStation.md)

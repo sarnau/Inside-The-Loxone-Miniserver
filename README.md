@@ -37,3 +37,4 @@ I've split up the documentation into separate parts to make it easier to read, a
         - [Loxone Room Comfort Sensor](./NAT/LoxoneLinkNATTreeRoomComfortSensor.md)
         - [Loxone Alarm Siren](./NAT/LoxoneLinkNATTreeAlarmSiren.md)
         - [Loxone Leaf Tree](./NAT/LoxoneLinkNATTreeLeaf.md)
+        - [Loxone Weather Station Tree](./NAT/LoxoneLinkNATTreeWeatherStation.md)
