@@ -4,7 +4,7 @@ I'd like to explain some technical details of the Loxone Miniserver and the Loxo
 
 The Miniserver is ARM based. The CPU is booting from a 512kb flash memory. This code then loads the actual operating system from the SD Card into the additional 64MB of memory and executes it from there.
 
-## Hardware id
+## Hardware version
 
 There are several different versions of Miniserver hardware:
 
@@ -19,6 +19,23 @@ There are several different versions of Miniserver hardware:
 ## CPU, Flash Memory, SRAM
 
 The CPU is an Atmel [AT91SAM9G20][1] from Microchip. It is a 3,3V 400MHz ARM926 with 32kb internal SRAM and 64kb internal ROM. It is paired with a serial interface Flash memory ([AT25DF041A][2] from Adesto Technologies), which is updatable by Loxone – it is one of two chips mounted on the back of the board. This flash memory also contains non-volatile memory used by the Miniserver, like encryption keys, which are not stored on the SD card. The other important chips are two SD RAM chips ([H57V2562GTR][3] from SK Hynix) as additional memory with 256MBit each adding another 64MB of memory.
+
+## Function of the AT25 FLASH memory
+
+The FLASH memory contains the boot firmware for the CPU, which reads the Miniserver firmware from the MicroSD card into the RAM and launches it.
+
+And while it is 512kb large it only uses about 12kb of its capacity. 10.25kb are reserved for the boot loader, followed by 256 bytes for an XML file with the hardware serial numbers and a 1.5kb area with the private encryption key.
+
+The XML contains the SSDP `modelNumber` as the `Type`; the UUID, also used for SSDP; the MAC or serial number of the Miniserver and the production date.
+
+    <?xml version="1.0" encoding="utf-8"?>
+    <Serial Version="10">
+        <Type>1</Type>
+        <UUID>aabbccdd-eeff-0011-2233-445566778899</UUID>
+        <MAC>50:4F:11:22:33:44</MAC>
+        <Date>01.01.2018 01:23:45</Date>
+    </Serial>
+
 
 ## Ethernet
 

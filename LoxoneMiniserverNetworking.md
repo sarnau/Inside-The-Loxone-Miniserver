@@ -6,6 +6,113 @@ Whenever I need to mention the 6-byte serial number of the Miniserver, I will us
 
 ## Finding a Miniserver in the Network
 
+There are two ways to search for a Miniserver in a local network:
+
+1. UDP Broadcast
+2. Simple Service Discovery Protocol
+
+### UDP Broadcast
+
+To search via UDP Broadcast, broadcast a single 0x00 byte to the UDP port 7070. while listening on UDP port 7071 for about 3s.
+
+Miniservers will reply with one package:
+
+    [LoxLIVE: Loxone Miniserver 192.168.178.32:80 504F11223344 10.2.3.26 Prog:2019-04-24 21:08:03 Type:0 HwId:A0000 IPv6:,0c112233:10020217/O]
+
+- `LoxLIVE:` can be used to detect the message
+- `Loxone Miniserver` is the name of the Miniserver. You might notice, that it is tricky to detect the length of the string. You need to scan for a valid IPv4 behind it to figure it out.
+- `192.168.178.32:80` is the local IPv4 with the HTTP port number.
+- `504F11223344` is the serial number of the Miniserver
+- `10.2.3.26` is the firmware version of the Miniserver
+- `Prog:2019-04-24 21:08:03` is the date of the Loxone Config file.
+- `Type:0`
+- `HwId:A0000` is the hardware version of the Miniserver as documented in [Loxone Miniserver Hardware](LoxoneMiniserverHardware.md)
+- `IPv6:,0cd83b34:10020217/O` looks like it is supposed to contain the IPv6 of the Miniserver, but because it is not assigned one, it seems to return garbage, which looks like the serial number of a Air Base Extension with its firmware version.
+
+### Simple Service Discovery Protocol
+
+This protocol is used by many different hardware devices, like Sonos.
+
+The Miniserver also responds to a [SSDP](https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol) request. It returns a reply like this:
+
+    HTTP/1.1 200 OK
+    CACHE-CONTROL:max-age=3600
+    ST:upnp:rootdevice
+    USN:uuid:aabbccdd-eeff-0011-2233-445566778899::upnp:rootdevice
+    EXT:
+    SERVER:Loxone Miniserver Loxone Miniserver UPnP/1.0
+    LOCATION:http://192.168.178.32:80/upnp.xml
+
+It contains the name after "Loxone Miniserver" and the SSDP UUID, as well as a location of an XML, which provides you with the `LOCATION`, which responds with the following XML code, that looks like this:
+
+    <root xmlns="urn:schemas-upnp-org:device-1-0">
+      <specVersion>
+        <major>1</major>
+        <minor>0</minor>
+      </specVersion>
+      <device>
+        <deviceType>urn:schemas-upnp-org:device:HVAC_System:1</deviceType>
+        <friendlyName>Loxone Miniserver</friendlyName>
+        <manufacturer>Loxone Electronics GmbH</manufacturer>
+        <manufacturerURL>https://www.loxone.com/</manufacturerURL>
+        <modelDescription>Loxone Electronics home control (Loxone Miniserver: *4C6F786F6E65204D696E69736572766572 192.168.178.32:80 504F11223344 10.2.3.26 IPv6:,0c112233:10020217/O)</modelDescription>
+        <modelName>Loxone Miniserver</modelName>
+        <modelNumber>1</modelNumber>
+        <modelURL>https://www.loxone.com/help/miniserver</modelURL>
+        <serialNumber>504F11223344</serialNumber>
+        <UDN>uuid:aabbccdd-eeff-0011-2233-445566778899</UDN>
+        <iconList>
+          <icon>
+            <mimetype>image/png</mimetype>
+            <width>16</width>
+            <height>16</height>
+            <depth>32</depth>
+            <url>/images/icon16.png</url>
+          </icon>
+          <icon>
+            <mimetype>image/png</mimetype>
+            <width>32</width>
+            <height>32</height>
+            <depth>32</depth>
+            <url>/images/icon32.png</url>
+          </icon>
+          <icon>
+            <mimetype>image/png</mimetype>
+            <width>48</width>
+            <height>48</height>
+            <depth>32</depth>
+            <url>/images/icon48.png</url>
+          </icon>
+          <icon>
+            <mimetype>image/png</mimetype>
+            <width>64</width>
+            <height>64</height>
+            <depth>32</depth>
+            <url>/images/icon64.png</url>
+          </icon>
+          <icon>
+            <mimetype>image/png</mimetype>
+            <width>256</width>
+            <height>256</height>
+            <depth>32</depth>
+            <url>/images/icon256.png</url>
+          </icon>
+        </iconList>
+        <presentationURL>http://192.168.178.32:80/index.html</presentationURL>
+      </device>
+    </root>
+
+
+The important entries are:
+
+- `friendlyName` - the user facing name of the Miniserver
+- `modelNumber` - is provided just like the serial number and the UUID from the flash memory.
+- `modelDescription` - similar to the UDP request. The hex-string after the `*` also contains the name.
+- `serialNumber` - serial number of the Miniserver
+- `UDN` - UUID for the Miniserver, similar to its serial number, but only used for SSDP.
+- `presentationURL` - URL to the webinterface
+- `iconList` - the iconList does not work, because the png asserts are not on the Miniserver. Feels like a bug.
+
 ## Booting the Miniserver
 
 1. UDP dynamic DNS update
