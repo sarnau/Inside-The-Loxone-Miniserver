@@ -8,6 +8,8 @@ I talk about three different device types in this document:
 
 I've split up the documentation into separate parts to make it easier to read, also because Legacy and NAT protocols are completely independent, you only need to care about the one that matters for you.
 
+I am also providing a collection of Python scripts for the Miniserver, feel free to look into them, to see if they are helpful for you.
+
 - Hardware
     - [Loxone Miniserver Hardware](LoxoneMiniserverHardware.md)
     - [Loxone Miniserver Go Hardware](LoxoneMiniserverGoHardware.md)
