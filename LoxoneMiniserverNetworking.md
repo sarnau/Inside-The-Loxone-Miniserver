@@ -31,7 +31,7 @@ Miniservers will reply with one package:
 
 ### Simple Service Discovery Protocol
 
-This protocol is used by many different hardware devices, like Sonos.
+This protocol is used by many different hardware devices, like Sonos. As such the Miniserver uses `NOTIFY` to inform the network via Broadcast.
 
 The Miniserver also responds to a [SSDP](https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol) request. It returns a reply like this:
 
@@ -126,8 +126,8 @@ The important entries are:
 | Server name | Description |
 | ----------- | ----------- |
 | [clouddns.loxone.com]() | Cloud Service DNS |
-| [mail.loxonecloud.com]() | Loxone Cloud Mailer Object to send emails |
-| [push.loxonecloud.com]() | Push Notificationens |
+| [mail.loxonecloud.com]() | Loxone Cloud Mailer Object to send emails, uses SMTP with encryption |
+| [push.loxonecloud.com]() | Push Notificationens, uses HTTPS |
 | [update.loxone.com]() | Checking for "Automatic Updates" (can be disabled in Loxone Config), also used in the webinterface to show ads for Loxone products. It can't be disabled there |
 | [monitorserver.loxone.com]() | Loxone Support Monitoring (not enabled by default) |
 | [log.loxone.com]() | Loxone Log (can be disabled in Loxone Config, sends support information to Loxone) |
@@ -135,6 +135,8 @@ The important entries are:
 | [caller.loxone.com]() | Caller Object for voice callbacks from the Miniserver |
 
 [push.loxonecloud.com](), [monitorserver.loxone.com](), [weather.loxone.com](), [clouddns.loxone.com]() and [dns.loxonecloud.com]() are all services running on the same Amazon server.
+
+[update.loxone.com]() is running on an running on Amazon cloud server.
 
 [caller.loxone.com]() is running on a Loxone server from Netplanet in Vienna.
 
@@ -144,6 +146,7 @@ The important entries are:
 ## Dynamic DNS (clouddns.loxone.com)
 
 Loxone offers a dynamic DNS service, which allows finding your own servers via the internet, based on the assumption that your home IP address is not static (which it typically is not). This still requires the Firewall to be open for the Miniserver. In general it is probably still better to have a VPN connection to your home, than relying on security of your home automation server. The advantage of this system is: it is easy and reasonably secure (if there are no security issues in the Miniserver and your passwords are good). That said: you are still exposing your server to the internet!
+
 
 ### Publishing the IP address
 
@@ -157,6 +160,8 @@ To publish the IP, the Miniserver sends a single UDP request to the Loxone Cloud
 - `AABBCCDDEEFF0011` is an 8 byte unique key. This key is constant for the Miniserver and acts as a validation for the serial number. It protects Loxone against bad guys pushing random serial numbers to their DNS server.
 
 But you might be able to spot a problem with security: because the request is not encrypted, any bad guy who manages to collect one request can then send it's own request to Loxone. The next time you try to connect to your server, you then could end up on a compromised server from the bad guy, telling him your admin name and password!
+
+Also it is called every 60s, which feels excessive. It should be called whenever the external IP changes, but not every minute.
 
 ### Finding an IP address
 
@@ -173,7 +178,7 @@ The Cloud Service Caller is an automated phone callback service from Loxone. It 
 
 [http://caller.loxone.com:80/cgi-bin/loxlive/call.pl?extip=http://dns.loxonecloud.com/504F11223344/dev/sps/io/caller/11389406-009a-2bdf-ffff1402153adf25/&loxid=504F11223344&tel=004912345678&text=Schalter%20aus]()
 
-You can see the following parts in the request:
+You can see the following parameters in the request:
 
 - `extip`=[http://dns.loxonecloud.com/504F11223344/dev/sps/io/caller/11223344-5566-7788-99aabbccddeeff00]() - `11223344-5566-7788-99aabbccddeeff00` is the object ID for the Caller Service in the Loxone Config file.
 - `loxid`=`504F11223344` - serial number of the Miniserver, the Miniserver needs to have a paid subscription of the  Cloud Service Caller.
@@ -350,6 +355,120 @@ The picto-codes for the weather icons seem to come from [Meteoblue](https://cont
 | 33         | Overcast with light rain (Loxone: Leichter Regen) |
 | 34         | Overcast with light snow (Loxone: Leichter Schneeschauer) |
 | 35         | Overcast with mixture of snow and rain (Loxone: Schneeregen) |
+
+
+## Update Server
+
+[update.loxone.com]() is a server to serve all updates for the Loxone products, it also hosts the XML file, which is requested by the Miniserver and all other Loxone apps.
+
+    http://update.loxone.com/updatecheck.xml?serial=504F11223344&version=10020326&reason=App
+
+You can see the following parameters in the request, they are all just for logging purposes.
+
+- `serial=504F11223344` - serial number of the Miniserver
+- `version=10020326` - current firmware version of the Miniserver
+- `reason=App` - why was the updated requested. (`0` = the Miniserver, `App` = a Loxone app requests it)
+
+The reply is a rather large XML file, which starting with Version 10 includes public key certificates and signatures used to validate the software update by the Miniserver. Previous versions just used a checksum. I've replaced the certificate and the signatures with `<CERTIFICATE>` and `<SIGNATURE>` to keep the document brief. As you can see, that there are 3 types of updates:
+
+- Release
+- Beta
+- Test
+
+Loxone seems to use this to allow public beta tests of their software. Updates are also included for all related products, like the "Loxone Smart Home" app for various platforms and TimeZone updates.
+
+    <Miniserversoftware Version="10" certificate="<CERTIFICATE>">
+      <Test Version="10.03.05.04" Path="http://updatefiles.loxone.com/LoxConfig/LoxoneConfigSetup_10030504.zip" signature="<SIGNATURE>"/>
+      <Beta Version="10.03.05.04" Path="http://updatefiles.loxone.com/LoxConfig/LoxoneConfigSetup_10030504.zip" signature="<SIGNATURE>"/>
+      <Release Version="10.02.03.26" Path="http://updatefiles.loxone.com/LoxConfig/LoxoneConfigSetup_10020326.zip" signature="<SIGNATURE>"/>
+      <update Name="WebInterface" type="webif">
+        <Test Version="20190503" Path="http://updatefiles.loxone.com/WebInterface/10320190503_commonv2.zip" Filesize="5873496" crc32="4577c078" signature=<SIGNATURE>"/>
+        <Beta Version="20190503" Path="http://updatefiles.loxone.com/WebInterface/10320190503_commonv2.zip" Filesize="5873496" crc32="4577c078" signature="<SIGNATURE>"/>
+        <Release Version="20190402" Path="http://updatefiles.loxone.com/WebInterface/102520190402_commonv2.zip" Filesize="5844622" crc32="73310bf5" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="WebInterfaceAGZ" type="webifAGZ">
+        <Test Version="20190503" Path="http://updatefiles.loxone.com/WebInterfaceAGZ/10320190503_commonv2.agz" Filesize="6008320" crc32="7bbc65ef" signature="<SIGNATURE>"/>
+        <Beta Version="20190503" Path="http://updatefiles.loxone.com/WebInterfaceAGZ/10320190503_commonv2.agz" Filesize="6008320" crc32="7bbc65ef" signature="<SIGNATURE>"/>
+        <Release Version="20190402" Path="http://updatefiles.loxone.com/WebInterfaceAGZ/102520190402_commonv2.agz" Filesize="5978624" crc32="899ff065" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="Loxone Smart Home for Mac" type="Mac OS X">
+        <Test Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/macOS/10320190503.dmg" Filesize="14059397" crc32="eb045428" signature="<SIGNATURE>"/>
+        <Beta Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/macOS/10320190503.dmg" Filesize="14059397" crc32="eb045428" signature="<SIGNATURE>"/>
+        <Release Version="10.2.5 (2019.04.02)" Path="http://updatefiles.loxone.com/macOS/102520190402.dmg" Filesize="14059397" crc32="eb045428" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="Loxone Smart Home for Linux x64" type="linux-x64">
+        <Test Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/linux/10320190503-amd64.deb" Filesize="43394142" crc32="df0a2559" signature="<SIGNATURE>"/>
+        <Beta Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/linux/10320190503-amd64.deb" Filesize="43394142" crc32="df0a2559" signature="<SIGNATURE>"/>
+        <Release Version="10.2.5 (2019.04.02)" Path="http://updatefiles.loxone.com/linux/102520190402-amd64.deb" Filesize="43394142" crc32="df0a2559" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="Loxone Smart Home for Linux x86" type="linux-x86">
+        <Test Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/linux/10320190503-i386.deb" Filesize="44373068" crc32="8aabec55" signature="<SIGNATURE>"/>
+        <Beta Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/linux/10320190503-i386.deb" Filesize="44373068" crc32="8aabec55" signature="<SIGNATURE>"/>
+        <Release Version="10.2.5 (2019.04.02)" Path="http://updatefiles.loxone.com/linux/102520190402-i386.deb" Filesize="44373068" crc32="8aabec55" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="Loxone Smart Home for Linux armv7l" type="linux-armv7l">
+        <Test Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/linux/10320190503-armv7l.deb" Filesize="39867056" crc32="19dc7942" signature="<SIGNATURE>"/>
+        <Beta Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/linux/10320190503-armv7l.deb" Filesize="39867056" crc32="19dc7942" signature="<SIGNATURE>"/>
+        <Release Version="10.2.5 (2019.04.02)" Path="http://updatefiles.loxone.com/linux/102520190402-armv7l.deb" Filesize="39867056" crc32="19dc7942" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="Loxone Smart Home for Linux arm64" type="linux-arm64">
+        <Test Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/linux/10320190503-arm64.deb" Filesize="38808166" crc32="04756263" signature="<SIGNATURE>"/>
+        <Beta Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/linux/10320190503-arm64.deb" Filesize="38808166" crc32="04756263" signature="<SIGNATURE>"/>
+        <Release Version="10.2.5 (2019.04.02)" Path="http://updatefiles.loxone.com/linux/102520190402-arm64.deb" Filesize="38808166" crc32="04756263" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="Loxone Smart Home for Windows" type="windows">
+        <Test Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/windows/10320190503.exe" Filesize="13155791" crc32="44926439"/>
+        <Beta Version="10.3.0 (2019.05.03)" Path="http://updatefiles.loxone.com/windows/10320190503.exe" Filesize="13155791" crc32="44926439"/>
+        <Release Version="10.2.5 (2019.04.02)" Path="http://updatefiles.loxone.com/windows/102520190402.exe" Filesize="13155791" crc32="44926439"/>
+      </update>
+      <update Name="Loxone Smart Home for iOS" type="ios">
+        <Test Version="10.3.0 (2019.05.03)"/>
+        <Beta Version="10.3.0 (2019.05.03)"/>
+        <Release Version="10.2.4 (2019.03.29)"/>
+      </update>
+      <update Name="Loxone Smart Home for Android" type="android">
+        <Test Version="10.3.0 (2019.05.03)"/>
+        <Beta Version="10.3.0 (2019.05.03)"/>
+        <Release Version="10.2.5 (2019.04.02)"/>
+      </update>
+      <update Name="Loxone Music Server" type="LoxoneMusicServer">
+        <Intern Version="1.3.03.13"/>
+        <Beta Version="1.3.03.13"/>
+        <Release Version="1.3.03.13"/>
+      </update>
+      <update Name="LoxLIVE" type="ms">
+        <Test Version="10030504" Path="http://updatefiles.loxone.com/bin/10030504_Miniserver.upd" Filesize="11118692" crc32="d76298bf" signature="<SIGNATURE>"/>
+        <Beta Version="10020314" Path="http://updatefiles.loxone.com/bin/10020314_Miniserver.upd" Filesize="10990384" crc32="5dd441a" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="TimeData" type="TimeData">
+        <Test Version="20180905" Path="http://updatefiles.loxone.com/Miniserver/20180905_timeData.zip" Filesize="369881" crc32="f592dde6" signature="<SIGNATURE>"/>
+        <Beta Version="20180905" Path="http://updatefiles.loxone.com/Miniserver/20180905_timeData.zip" Filesize="369881" crc32="f592dde6" signature="<SIGNATURE>"/>
+        <Release Version="20180905" Path="http://updatefiles.loxone.com/Miniserver/20180905_timeData.zip" Filesize="369881" crc32="f592dde6" signature="<SIGNATURE>"/>
+      </update>
+      <update Name="VenBlindmotorAir" type="air">
+        <Test Version="10001009" MsMinVersion="10000924" Path="http://updatefiles.loxone.com/bin/10011009_VenBlindmotorAir.upd" crc32="f8fa38b4" Year="2018" signature="<SIGNATURE>"/>
+        <Beta Version="10001009" MsMinVersion="10000924" Path="http://updatefiles.loxone.com/bin/10011009_VenBlindmotorAir.upd" crc32="f8fa38b4" Year="2018" signature="<SIGNATURE>"/>
+        <Release Version="10001009" MsMinVersion="10000924" Path="http://updatefiles.loxone.com/bin/10011009_VenBlindmotorAir.upd" crc32="f8fa38b4" Year="2018" signature="<SIGNATURE>"/>
+      </update>
+      <changelogs>
+        <changelog lang="DEU" url="http://www.loxone.com/dede/produkte/software/loxone-config.html"/>
+        <changelog lang="ENU" url="http://www.loxone.com/enen/products/software/loxone-config.html"/>
+        <changelog lang="CSY" url="http://www.loxone.com/cscz/produkty/software/loxone-config.html"/>
+        <changelog lang="ESN" url="http://www.loxone.com/eses/productos/software/loxone-config.html"/>
+        <changelog lang="NLD" url="http://www.loxone.com/nlnl/producten/software/loxone-config.html"/>
+        <changelog lang="SKY" url="http://www.loxone.com/cscz/produkty/software/loxone-config.html"/>
+        <changelogx lang="ENG" url="http://www.loxone.com/enen/products/software/loxone-config.html"/>
+        <changelogx lang="FR" url="http://www.loxone.com/frfr/produits/logiciels/loxone-config.html"/>
+      </changelogs>
+    </Miniserversoftware>
+
+
+Related to this, the webapp is also requesting
+
+    https://www.loxone.com/loxone-feed.php?channel=app&lang=enus?_=123456789
+
+which requests the annoying advertisements shown in the top-right corner of the app. The `_` parameter is just a random number (actually a timer value) to avoid caching of the data.
+
 
 ## Log Server
 
