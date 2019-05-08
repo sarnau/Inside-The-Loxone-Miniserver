@@ -29,12 +29,14 @@ Whenever I need to mention the 6-byte serial number of the Miniserver, I will us
 [log.loxone.com]() is running on a Loxone server directly at the Loxone headquarter in Kollerschlag, Austria.
 
 
-## Finding a Miniserver in the Network
+## Finding a Miniserver in the local network
 
 There are two ways to search for a Miniserver in a local network:
 
 1. UDP Broadcast
 2. Simple Service Discovery Protocol
+
+To find a Miniserver from outside the local network, you either need to use the DNS service from Loxone or use a VPN setup for your local network.
 
 ### UDP Broadcast
 
@@ -375,7 +377,7 @@ The picto-codes for the weather icons seem to come from [Meteoblue](https://cont
 | 35         | Overcast with mixture of snow and rain (Loxone: Schneeregen) |
 
 
-## Loxone Update Server
+## Loxone Update Server (update.loxone.com)
 
 [update.loxone.com]() is a server to serve all updates for the Loxone products, it also hosts the XML file, which is requested by the Miniserver and all other Loxone apps.
 
@@ -488,7 +490,7 @@ Related to this, the webapp is also requesting
 which requests the annoying advertisements shown in the top-right corner of the app. The `_` parameter is just a random number (actually a timer value) to avoid caching of the data.
 
 
-## Loxone Log Server
+## Loxone Log Server (log.loxone.com)
 
 Loxone allows sending Crashlogs automatically to them via the "Loxone Log" setting in Loxone Config. If enabled, the Miniserver will send a binary block of Loxone Support Crashlog, when necessary.
 
@@ -510,7 +512,7 @@ Now the question: what data is in it? Typical crashlog related data:
 As you can see with the exception of the owner and the Latitude/Longitude of the Miniserver, there is not really any personal data in this block. And the coordinates are send to Loxone via the Weather report anyway.
 
 
-## Loxone Support Monitoring
+## Loxone Support Monitoring (monitorserver.loxone.com)
 
 The Monitor Server can be enabled in Loxone Config via the "Monitor Server" option, it sends this request:
 
@@ -558,4 +560,3 @@ The Miniserver offers a HTTP interface at the HTTP port 80 (this port can be cha
 ## Miniserver FTP-Interface
 
 The Miniserver offers a FTP interface at the FTP port 21 (this port can be changed in Loxone Config). This is used to upload a configuration or download backups.
-
