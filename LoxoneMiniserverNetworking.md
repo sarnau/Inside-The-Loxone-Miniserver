@@ -4,6 +4,31 @@ The Miniserver allows connections from other computers and can talk to other sys
 
 Whenever I need to mention the 6-byte serial number of the Miniserver, I will use `504F11223344` as the serial number. You obviously need to use your own serial number.
 
+## Known Loxone Servers
+
+| Server name | Description |
+| ----------- | ----------- |
+| [www.loxone.com]() | Their main website, also hosts the advertisement feed. |
+| [clouddns.loxone.com]() | Cloud Service DNS |
+| [mail.loxonecloud.com]() | Free Push Loxone Cloud Mailer to send emails; uses SMTP with encryption |
+| [push.loxonecloud.com]() | Free Push Notificationens Service; uses HTTPS |
+| [weather.loxone.com]() | The subscription-based Loxone Weather Service |
+| [caller.loxone.com]() | The subscription-based Caller Service for text-to-speech callbacks for notifications |
+| [update.loxone.com]() | Checking for "Automatic Updates" (can be disabled in Loxone Config), also used in the webinterface to show ads for Loxone products. It can't be disabled there |
+| [monitorserver.loxone.com]() | Loxone Support Monitoring (has to be enabled via the "Monitor Server" option in Loxone Config) |
+| [log.loxone.com]() | Loxone Log (can be disabled in Loxone Config, sends support information to Loxone) |
+
+[clouddns.loxone.com](), [push.loxonecloud.com](), [weather.loxone.com](),  and [dns.loxonecloud.com]() are all services running on the same Amazon server.
+
+[mail.loxonecloud.com](), [monitorserver.loxone.com]() is running on Host Europe GmbH.
+
+[update.loxone.com]() is running on an running on Amazon cloud server.
+
+[caller.loxone.com]() is running on a Loxone server from Netplanet in Vienna.
+
+[log.loxone.com]() is running on a Loxone server directly at the Loxone headquarter in Kollerschlag, Austria.
+
+
 ## Finding a Miniserver in the Network
 
 There are two ways to search for a Miniserver in a local network:
@@ -113,34 +138,14 @@ The important entries are:
 - `presentationURL` - URL to the webinterface
 - `iconList` - the iconList does not work, because the png asserts are not on the Miniserver. Feels like a bug.
 
-## Booting the Miniserver
 
-1. UDP dynamic DNS update
-2. HTTP dynamic DNS check via dns.loxonecloud.com:80
-3. HTTP request weather forecast
-4. NTP clock requests
-5. Send log information
+## During starting of the Miniserver
 
-## Known Loxone Servers
-
-| Server name | Description |
-| ----------- | ----------- |
-| [clouddns.loxone.com]() | Cloud Service DNS |
-| [mail.loxonecloud.com]() | Loxone Cloud Mailer Object to send emails, uses SMTP with encryption |
-| [push.loxonecloud.com]() | Push Notificationens, uses HTTPS |
-| [update.loxone.com]() | Checking for "Automatic Updates" (can be disabled in Loxone Config), also used in the webinterface to show ads for Loxone products. It can't be disabled there |
-| [monitorserver.loxone.com]() | Loxone Support Monitoring (not enabled by default) |
-| [log.loxone.com]() | Loxone Log (can be disabled in Loxone Config, sends support information to Loxone) |
-| [weather.loxone.com]() | Weather service |
-| [caller.loxone.com]() | Caller Object for voice callbacks from the Miniserver |
-
-[push.loxonecloud.com](), [monitorserver.loxone.com](), [weather.loxone.com](), [clouddns.loxone.com]() and [dns.loxonecloud.com]() are all services running on the same Amazon server.
-
-[update.loxone.com]() is running on an running on Amazon cloud server.
-
-[caller.loxone.com]() is running on a Loxone server from Netplanet in Vienna.
-
-[log.loxone.com]() is running on a Loxone server directly at the Loxone headquarter in Kollerschlag, Austria.
+1. SSDP NOTIFY to the local network
+2. Send log information, if necessary
+3. UDP dynamic IP update via dns.loxonecloud.com:80
+4. HTTP request for the weather forecast
+5. NTP clock requests
 
 
 ## Dynamic DNS (clouddns.loxone.com)
@@ -172,7 +177,7 @@ This will get resolved to: [http://504F11223344.dns.loxonecloud.com]()
 which forwards directly to your Miniserver.
 
 
-### Cloud Service Caller (caller.loxone.com)
+## Cloud Service Caller (caller.loxone.com)
 
 The Cloud Service Caller is an automated phone callback service from Loxone. It can be configured in Loxone Config. Whenever it is triggered, the Miniserver sends the following request:
 
@@ -252,6 +257,19 @@ You notice a couple of parameters:
 - format=1 - the Weather server can return two different report formats: `format=0`, which is XML or `format=1`, which is a mixture between XML and CSV from Meteo Blue. The Miniserver understands both detects the right format automatically.
 
 If have not found out, when the XML/CSV format is requested, it seems that it can happen after a reboot. Typically the Miniserver seems to request XML. But as I said, the server could ignore the format and simply return whatever is more convenient.
+
+If there is no paid subscription, the response will be this:
+
+    HTTP/1.1 200 OK
+    Date: Wed, 01 Feb 2018 01:02:34 GMT
+    Server: Apache/2.4.7 (Ubuntu)
+    Vary: Accept-Encoding
+    Content-Length: 153
+    Content-Type: text/xml
+
+    <?xml version="1.0"?>
+    <ServiceExceptionReport><ServiceException>authentication exception: user is not active</ServiceException></ServiceExceptionReport>
+
 
 Here a shortened example for the XML/CSV format. I've only shown the first 2 and last 2 entries. Overall it is 181 entries large. As you can see it has a header, describing the individual columns in the CSV block below. It also has a `valid_until` entry, which contains the subscription expiry date. The Miniserver will start warning, once you hit that date. `Kollerschlag` is a bug, it seems to not know the city, so it falls back to `Kollerschlag`. Longitude and latitude are correct, as well as the elevation. Sunrise/Sunset are also provided, but the Miniserver does it's own calculation locally.
 
@@ -357,7 +375,7 @@ The picto-codes for the weather icons seem to come from [Meteoblue](https://cont
 | 35         | Overcast with mixture of snow and rain (Loxone: Schneeregen) |
 
 
-## Update Server
+## Loxone Update Server
 
 [update.loxone.com]() is a server to serve all updates for the Loxone products, it also hosts the XML file, which is requested by the Miniserver and all other Loxone apps.
 
@@ -470,22 +488,74 @@ Related to this, the webapp is also requesting
 which requests the annoying advertisements shown in the top-right corner of the app. The `_` parameter is just a random number (actually a timer value) to avoid caching of the data.
 
 
-## Log Server
+## Loxone Log Server
 
-log.loxone.com
+Loxone allows sending Crashlogs automatically to them via the "Loxone Log" setting in Loxone Config. If enabled, the Miniserver will send a binary block of Loxone Support Crashlog, when necessary.
 
-982 Bytes
+The data is 982 bytes long and send to log.loxone.com:7707 via UDP.
 
-Contains the Miniserver serial number and the name of the author.
+Now the question: what data is in it? Typical crashlog related data:
 
-7707	UDP	Loxone Support Crashlog
+- timestamp
+- serial number of the Miniserver
+- version of the Miniserver
+- which hardware the Miniserver is running on
+- local IP address
+- used/maximum memory
+- Latitude/Longitude of the Miniserver from the config file.
+- name of the owner of the Miniserver from the config file.
+- error statistics
+- function callstack on a crash
+
+As you can see with the exception of the owner and the Latitude/Longitude of the Miniserver, there is not really any personal data in this block. And the coordinates are send to Loxone via the Weather report anyway.
 
 
-## Web-Interface
+## Loxone Support Monitoring
+
+The Monitor Server can be enabled in Loxone Config via the "Monitor Server" option, it sends this request:
+
+    http://monitorserver.loxone.com:80/?504F11223344
+
+It responds with:
+
+    HTTP/1.1 200 OK
+    Date: Wed, 01 May 2018 01:23:45 GMT
+    Server: Apache/2.2.22 (Debian)
+    X-Powered-By: PHP/5.4.45-0+deb7u2
+    Cache-Control: no-cache, must-revalidate
+    Expires: Mon, 26 Jul 1997 05:00:00 GMT
+    Content-Length: 107
+    Content-Type: application/xml
+    X-Pad: avoid browser bug
+
+    <?xml version="1.0"?>
+    <Log Version="10" LogKeep="true" NoIPchange="false">
+      <LogMode>Off</LogMode>
+    </Log>
+
+I haven't looked into it further, but I can guess that this allows Loxone to enable logging, which means all log output will be sent to them. Here are possible keys:
+
+- `Version` = major version of the Miniserver
+- `LogKeep` = boolean, unknown
+- `NoIPchange` = boolean, if true, the output is send to `/dev/udp/IPADDRESS/PORT` with IPADDRESS being the address of `monitorserver.loxone.com` the the default port being 7777.
+- `LogDest` = path for the log file, default is `/dev/null`
+- `LogMode` = `on` or `off`
+- `LogLevelCommon` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelSPS` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelProtocol` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelBus` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelFilesystem` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelNet` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogStart` = Loxone timestamp as an integer
+- `LogDay` = integer, number of days logging should be active. Up to 7.
+- `LogUntil` = UTC date/time string
+
+
+## Miniserver Web-Interface
 
 The Miniserver offers a HTTP interface at the HTTP port 80 (this port can be changed in Loxone Config). You can use a webbrowser to use the "Loxone Smart Home" directly on the server.
 
-## FTP-Interface
+## Miniserver FTP-Interface
 
 The Miniserver offers a FTP interface at the FTP port 21 (this port can be changed in Loxone Config). This is used to upload a configuration or download backups.
 
