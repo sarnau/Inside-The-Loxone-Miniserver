@@ -9,7 +9,7 @@ import glob,os,struct
 # - CPU for the firmware
 # - ROM area used
 # - RAM area used
-# - Category (Server,Legacy,Tree or Air) – this is just a guess can is sometimes wrong
+# - Category (Server,Legacy,Tree,NAT or Air)
 # - Version number of the firmware version
 # - Product name
 
@@ -207,7 +207,10 @@ def analyzeUpdatefile(filename):
           b.extend(buffer[114*4:])
           ROMCalculatedChecksum = stm32_crc32(b)
           cpu = 'STM32F3'
-          category = 'Tree'
+          if ROMProduct & 0x8000:
+            category = 'Tree'
+          else:
+            category = 'NAT'
         else:
           print '### UNKNOWN ###',filename
           cpu = None
