@@ -4,14 +4,14 @@ I'd like to explain some technical details of the Loxone Miniserver and the Loxo
 
 The Miniserver is ARM based. The CPU is booting from a 512kb flash memory. This code then loads the actual operating system from the SD Card into the additional 64MB of memory and executes it from there.
 
-## Hardware version
+## Hardware id
 
 There are several different versions of Miniserver hardware:
 
 - ` 40000` - first known version
-- ` 60000` - KNX, Ethernet changes
-- ` 80000` - no significant changes
-- ` a0000` - new Ethernet chip, [KSZ8081RNB][4b]
+- ` 60000` - KNX and Ethernet changes with different reset support
+- ` 80000` - unknown changes
+- ` a0000` - some SD card change, new Ethernet chip, [KSZ8081RNB][4b]
 - ` c0000` - 128MB of SRAM (twice the amount of older versions)
 - `100000` - Miniserver Go (based on the `a0000` Miniserver)
 

@@ -4,19 +4,19 @@ The Miniserver allows connections from other computers and can talk to other sys
 
 Whenever I need to mention the 6-byte serial number of the Miniserver, I will use `504F11223344` as the serial number. You obviously need to use your own serial number.
 
-## Known Loxone Servers
+## Known external Loxone Servers
 
-| Server name | Description |
-| ----------- | ----------- |
-| [www.loxone.com]() | Their main website, also hosts the advertisement feed. |
-| [clouddns.loxone.com]() | Cloud Service DNS |
-| [mail.loxonecloud.com]() | Free Push Loxone Cloud Mailer to send emails; uses SMTP with encryption |
-| [push.loxonecloud.com]() | Free Push Notificationens Service; uses HTTPS |
-| [weather.loxone.com]() | The subscription-based Loxone Weather Service |
-| [caller.loxone.com]() | The subscription-based Caller Service for text-to-speech callbacks for notifications |
-| [update.loxone.com]() | Checking for "Automatic Updates" (can be disabled in Loxone Config), also used in the webinterface to show ads for Loxone products. It can't be disabled there |
-| [monitorserver.loxone.com]() | Loxone Support Monitoring (has to be enabled via the "Monitor Server" option in Loxone Config) |
-| [log.loxone.com]() | Loxone Log (can be disabled in Loxone Config, sends support information to Loxone) |
+| Server name | Description | Loxone Documentation Link |
+| ----------- | ----------- | :------------------------- |
+| <https://www.loxone.com> | Their main website, also hosts the News Feed. | <https://www.loxone.com> |
+| [clouddns.loxone.com]() | Loxone DNS Service | <https://www.loxone.com/enen/kb/dns-service/> |
+| [mail.loxonecloud.com]() | Loxone Mailer Service to send emails | <https://www.loxone.com/enen/kb/mailer-service/> |
+| [push.loxonecloud.com]() | Push Notifications Service | <https://www.loxone.com/enen/kb/push-notifications/> |
+| [weather.loxone.com]() | The subscription-based Loxone Weather Service | <https://www.loxone.com/enen/kb/weather-service/> |
+| [caller.loxone.com]() | The subscription-based Caller Service for text-to-speech callbacks for notifications | <https://www.loxone.com/enen/kb/caller-service/> |
+| [update.loxone.com]() | Update server for the hardware | <https://www.loxone.com/enen/kb/installing-updates/> |
+| [monitorserver.loxone.com]() | Loxone Monitor | <https://www.loxone.com/enen/kb/loxone-monitor/> |
+| [log.loxone.com]() | Loxone Log (can be disabled in Loxone Config, sends support information to Loxone) | |
 
 [clouddns.loxone.com](), [push.loxonecloud.com](), [weather.loxone.com](),  and [dns.loxonecloud.com]() are all services running on the same Amazon server.
 
@@ -27,6 +27,48 @@ Whenever I need to mention the 6-byte serial number of the Miniserver, I will us
 [caller.loxone.com]() is running on a Loxone server from Netplanet in Vienna.
 
 [log.loxone.com]() is running on a Loxone server directly at the Loxone headquarter in Kollerschlag, Austria.
+
+## Known used ports of the Miniserver
+
+| Type | Port | Description |
+| :--: | :--: | :---------- |
+| TCP  | 21   | FTP server |
+| TCP  | 23   | Telnet (stream) |
+| TCP  | 80   | HTTP server (also: stream) |
+| TCP  | 8080 | HTTP |
+| UDP  | 68   | DHCP |
+| UDP  | 123  | NTP |
+| UDP  | 137  | NetBIOS NS |
+| UDP  | 162  | smtp (stream) |
+| UDP  | 514  | syslog (stream) |
+| UDP  | 1900 | SSDP |
+| UDP  | 3671 | EIBnet/IP tunnel protocol |
+| UDP  | 5000 | Intercom |
+| UDP  | 5353 | mDNS |
+| UDP  | 7070/7071 | Miniserver send/answer – used for discovery |
+| UDP  | 7072/7073 | Loxone Gateway (from/to ports) |
+| UDP  | 7074/7075 | Loxone Gateway (from/to ports) (alternative ports) |
+| UDP  | 7076 | Loxone Gateway |
+| UDP  | 7077 | Intercom |
+| UDP  | 7078 | Bus Handler (unknown) |
+| UDP  | 7090 | Keba Wallbox (see <https://www.keba.com/web/downloads/e-mobility/KeContact_P20_P30_UDP_ProgrGuide_en.pdf>) |
+| UDP  | 7091 | Loxone Multi Media Server |
+| UDP  | 7700 | Loxone DNS Service (send only) |
+| UDP  | 7707 | Loxone Log Server (send only) |
+| UDP  | 7777 | Loxone Monitor (send only) |
+| UDP  | 8110 | Intercom Xl |
+| UDP  | 8112 | Intercom SIP |
+| UDP  | 55895 | UPnp search |
+
+The firewall in the Miniserver only allows the configured HTTP port (typically 80) and FTP port (typically 21) to pass through. Additionally HTTPS (port 443) and port 7091 are always allowed. All other will be blocked.
+
+DHCP/NTP/NetBIOS/SSDP/mDNS/UPnp are typical ports to detect or be detected by other network devices. There are no special Miniserver related services being offered by them.
+
+The stream ports are possible destinations for the Loxone configuration, like `/dev/udp`.
+
+The Ports starting at 7070 seem to be a reserved range of UDP ports used by the Miniserver. 7700,7707,7777 are for sending to Loxone specific services, they can all be disabled, if necessary.
+
+The Intercom seems to use a range of ports (5000,7077,8110,8112)
 
 
 ## Finding a Miniserver in the local network
@@ -150,14 +192,65 @@ The important entries are:
 5. NTP clock requests
 
 
-## Dynamic DNS (clouddns.loxone.com)
+## Loxone News Feed (www.loxone.com)
+The Loxone Smart Home application, but also the webinterface to show ads for Loxone products. These can't be disabled!
+
+The web application is requesting
+
+    https://www.loxone.com/loxone-feed.php?channel=app&lang=dede?_=123456789
+
+which requests the annoying advertisements shown in the top-right corner of the app. The `_` parameter is just a random number (actually a timer value) to avoid caching of the data, it could be omitted. The returned data is a JSON block, which looks like this:
+
+    HTTP/1.1 200 OK
+    Date: Mon, 01 May 2018 00:11:22 GMT
+    Content-Type: application/json
+    Transfer-Encoding: chunked
+    Connection: close
+    Access-Control-Allow-Origin: *
+    Expires: 0
+    Last-Modified: Mon, 01 May 2018 00:11:22 GMT
+    Cache-Control: no-store, no-cache, must-revalidate
+    Cache-Control: post-check=0, pre-check=0
+    Pragma: no-cache
+    Vary: Accept-Encoding
+    Expect-CT: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+    Server: cloudflare
+
+    [
+        {
+            "title": "Touch Nightlight: Viel mehr als ein gew\u00f6hnliches Nachtlicht",
+            "image": "https:\/\/www.loxone.com\/wp-content\/uploads\/sites\/2\/2019\/03\/Touch_Nightlight_Header_NEU.png",
+            "short_text": "Das Touch Nightlight ist weit mehr als ein gew\u00f6hnliches Nachtlicht. Es ist Ambientelicht, Wecker, Bedienger\u00e4t, Alarmgeber und Nachtlicht zugleich. Diese Vielf\u00e4ltigkeit macht es zur perfekten Erg\u00e4nzung f\u00fcr all Ihre Wohn- und Schlafr\u00e4ume. Vom Elternschlafzimmer bis zum Kinderzimmer.",
+            "link": "https:\/\/www.loxone.com\/dede\/touch-nightlight-mehr-als-ein-nachtlicht\/",
+            "timestamp": 1553592596,
+            "location_long": "",
+            "location_lat": "",
+            "radius": "",
+            "partner_status": ""
+        },
+        ……………
+        {
+            "title": "iPad Wallmount: Die eleganteste Wandhalterung aller Zeiten",
+            "image": "https:\/\/www.loxone.com\/wp-content\/uploads\/sites\/2\/2018\/11\/Wallmount_Article-Header-Landscape-with-Finishing@1x.min_.png",
+            "short_text": "Hochwertige Materialien, beste Verarbeitung, hauchd\u00fcnne Abmessungen, ein elegantes sowie zeitloses Design und ein revolution\u00e4re Ladevorrichtung. Diese Attribute beschreiben unsere iPad Wallmount. Angebracht an Ihrem Lieblingsort, verwandelt sie Ihr iPad in die eleganteste Smart Home Bedienzentrale aller Zeiten. ",
+            "link": "https:\/\/www.loxone.com\/dede\/ipad-wallmount\/",
+            "timestamp": 1543914098,
+            "location_long": "",
+            "location_lat": "",
+            "radius": "",
+            "partner_status": ""
+        }
+    ]
+
+
+## Loxone DNS Service (clouddns.loxone.com)
 
 Loxone offers a dynamic DNS service, which allows finding your own servers via the internet, based on the assumption that your home IP address is not static (which it typically is not). This still requires the Firewall to be open for the Miniserver. In general it is probably still better to have a VPN connection to your home, than relying on security of your home automation server. The advantage of this system is: it is easy and reasonably secure (if there are no security issues in the Miniserver and your passwords are good). That said: you are still exposing your server to the internet!
 
 
-### Publishing the IP address
+### Publishing the IP address for a Miniserver
 
-To publish the IP, the Miniserver sends a single UDP request to the Loxone Cloud Service DNS on port 7700 with the following content:
+To publish the IP, the Miniserver sends a single UDP request to the Loxone DNS Service on port 7700 with the following content:
 
     504F11223344,80,00000000,AABBCCDDEEFF0011
 
@@ -170,80 +263,48 @@ But you might be able to spot a problem with security: because the request is no
 
 Also it is called every 60s, which feels excessive. It should be called whenever the external IP changes, but not every minute.
 
-### Finding an IP address
+### Finding an IP address for a Miniserver
 
 To find the IP address for a Miniserver, you need to know it's serial number and simply send this request: [http://dns.loxonecloud.com/504F11223344]()
 
 This will get resolved to: [http://504F11223344.dns.loxonecloud.com]()
 
-which forwards directly to your Miniserver.
+which forwards directly to your Miniserver. Alternatively you can get the DNS status by sending this request [http://dns.loxonecloud.com/?getip&snr=504F11223344&json=true](), which provides you with a JSON reply:
+
+    {
+      "cmd": "getip",
+      "IP": "123.123.123.123",
+      "Code": 200,
+      "LastUpdated": "2018-02-01 00:11:22",
+      "PortOpen": true,
+      "DNS-Status": "registered"
+    }
+
+Without the json flag, you get an XML reply. Whatever you prefer, but Loxone has been deprecating XML-based APIs, so I would probably go with the JSON one.
+
+    <Answer cmd="getip" LastUpdated="2018-02-01 00:11:22" PortOpen="1" IP="123.123.123.123" Code="200" DNS-Status="registered"/>
 
 
-## Cloud Service Caller (caller.loxone.com)
+## Mailer / Loxone Mailer Service (mail.loxonecloud.com)
+The Miniserver can send emails with status updates to any email account.
 
-The Cloud Service Caller is an automated phone callback service from Loxone. It can be configured in Loxone Config. Whenever it is triggered, the Miniserver sends the following request:
+When using the standard Mailer service, you have to provide an SMTP server with username and password to send emails, but it does not support encryption. This might not be a problem, if you are running your own SMTP server in your house, but over the internet it is.
 
-[http://caller.loxone.com:80/cgi-bin/loxlive/call.pl?extip=http://dns.loxonecloud.com/504F11223344/dev/sps/io/caller/11389406-009a-2bdf-ffff1402153adf25/&loxid=504F11223344&tel=004912345678&text=Schalter%20aus]()
+The Loxone Mailer Service is a special mail server from Loxone, which does encrypt data between the Miniserver and the mail server. The disadvantage is a potential limit on the number of emails you can send and that you are relying on Loxone as well as trusting them with you data. Interestingly it is not using SMTP, but HTTPS to send the data. It works in two steps:
 
-You can see the following parameters in the request:
+1. Request an authorization key via `https://mail.loxonecloud.com/getkey/MINISERVER_SERIAL`. The response is a 48 byte hex string, which converts into a 24 byte ASCII string.
+2. Send the email via POST `https://mail.loxonecloud.com/sendmail/MINISERVER_SERIAL` with an XML block containing the user, date, sender, sender name (the server name), receiver, subject, mail body and an authorization code. The user field is the encrypted username and password, the authorization code is calculated with a HMAC-SHA1 with the response from the first request as a key and a secret code plus the Miniserver serial number as the data. This allows the Mail server to validate the partner.
 
-- `extip`=[http://dns.loxonecloud.com/504F11223344/dev/sps/io/caller/11223344-5566-7788-99aabbccddeeff00]() - `11223344-5566-7788-99aabbccddeeff00` is the object ID for the Caller Service in the Loxone Config file.
-- `loxid`=`504F11223344` - serial number of the Miniserver, the Miniserver needs to have a paid subscription of the  Cloud Service Caller.
-- `tel`=`004912345678` - phone number, which need to be called
-- `text`=`Schalter%20aus` - the text which will be said to you via text-to-speech
+Security: trusting somebody on the internet is always a risk, even Loxone. But mail is not considered really secure and we are typically talking about status updates. Their choice of HTTPS is fine, but their authorization mechanism is kind of weird. Yes, it is a handshake between two partners, but the signature of the reply is only based on the serial number. The username/password are empty anyway, but probably validated via decryption – which is another check, this time with the date and Miniserver serial number. What is absent are all the other fields, which could be considered an attack surface, because via a man-in-the-middle these fields could be simply replaced with new data. Nevertheless not a very probable attack, but possible, especially if you are in the same network.
 
-This request triggers a http reply, which content can be ignored.
+## Push Notification Service (push.loxonecloud.com)
+This service allows sending notifications to typically mobile devices, like smartphones. The content is similar to mail, but more limited.
 
-    HTTP/1.1 200 OK\r\n
-    Date: Mon, 20 Feb 2019 00:11:22 GMT\r\n
-    Server: Apache/2.4.7 (Ubuntu)\r\n
-    X-Powered-By: PHP/5.5.9-1ubuntu4.14\r\n
-    Vary: Accept-Encoding\r\n
-    Transfer-Encoding: chunked\r\n
-    Content-Type: text/html\r\n
-    \n\r\n
-    4a\r\n == Length of following line without the \r\n suffix
-    2018-02-20 01:11:22:11.22.33.44:-----------------------------------<br>\n\r\n
-    3b\r\n
-    2018-02-20 01:11:22:11.22.33.44:TEXT2SPEECH START...<br>\n\r\n
-    46\r\n
-    2018-02-20 01:11:22:11.22.33.44:MINISERVER 504F11223344 ACTIVE.<br>\n\r\n
-    3d\r\n
-    2018-02-20 01:11:22:11.22.33.44:CALL TO 4912345678.<br>\n\r\n
+Apple requires all iOS software to use HTTPS for notifications, which means that this service is HTTPS based.
 
-Within a few seconds you will get a phone call with the announcement. You can then enter a code, which will be forwarded to your Miniserver (assuming the dynamic DNS is working), it does so by using the `extip` URL and appending the code, like so for the code `1`: [http://dns.loxonecloud.com/504F11223344/dev/sps/io/caller/11223344-5566-7788-99aabbccddeeff00/1]()
+Sending a notification is done via an HTTPS POST to `https://push.loxonecloud.com:443/v1/push` with the notification being a JSON block in the body. This block contains a UUID, a timestamp, a title, a message, the name of the Miniserver, a list of UUIDs of devices to notify, a type, an optional sound (none, door bell, alarm, smoke alarm), a level (info,error,system error) and a UUID reference to the notification object in the Loxone configuration. It is also signed via HMAC-SHA1. The server will return a response with a valid status (true/false), an HTTP-like error code and a list of push_errors, e.g. if certain devices are no longer registered for push notifications.
 
-The Miniserver will reply accordingly, if the change was accepted:
-
-    GET /dev/sps/io/caller/11223344-5566-7788-99aabbccddeeff00/1 HTTP/1.1\r\n
-    Host: 11.22.33.44\r\n
-    Accept: */*\r\n
-    \r\n
-    HTTP/1.1 200 OK\r\n
-    Access-Control-Allow-Origin: \r\n
-    Access-Control-Allow-Credentials: true\r\n
-    Content-Type: text/xml\r\n
-    Content-Length: 131\r\n
-    Keep-Alive: timeout=10, max=1000\r\n
-    Connection: Keep-Alive\r\n
-    \r\n
-    <?xml version="1.0" encoding="utf-8"?>
-    <LL control="dev/sps/io/11223344-5566-7788-99aabbccddeeff11/pulse" value="1" Code="200"/>\r\n
-
-As you can see, the whole communication is not encrypted. Attacks are possible, but limited:
-
-- you need to know the Miniserver serial number, which has to have a paid subscription
-- the request to trigger a callback has to come from the IP address of the Miniserver
-
-As you can see: this would be easily possible for anybody within your home network. From this network you can fake callbacks with no problem. This could be especially tricky if the callback allows security relevant things, like unlocking doors.
-
-Could somebody from the outside hack this? Potentially, but only in a small window:
-
-- you need to catch the Caller request
-- within 2 minutes, you can trigger the callback URL, even with different parameters
-
-Is this all a big risk? Probably not, but Loxone could have done better – even without SSL.
-
+To receive notifications you have to to an HTTPS POST to `https://push.loxonecloud.com:443/v1/register` also with a JSON block.
 
 ## Weather Service (weather.loxone.com)
 
@@ -377,9 +438,75 @@ The picto-codes for the weather icons seem to come from [Meteoblue](https://cont
 | 35         | Overcast with mixture of snow and rain (Loxone: Schneeregen) |
 
 
+## Cloud Service Caller (caller.loxone.com)
+
+The Cloud Service Caller is an automated phone callback service from Loxone. It can be configured in Loxone Config. Whenever it is triggered, the Miniserver sends the following request:
+
+[http://caller.loxone.com:80/cgi-bin/loxlive/call.pl?extip=http://dns.loxonecloud.com/504F11223344/dev/sps/io/caller/11389406-009a-2bdf-ffff1402153adf25/&loxid=504F11223344&tel=004912345678&text=Schalter%20aus]()
+
+You can see the following parameters in the request:
+
+- `extip`=[http://dns.loxonecloud.com/504F11223344/dev/sps/io/caller/11223344-5566-7788-99aabbccddeeff00]() - `11223344-5566-7788-99aabbccddeeff00` is the object ID for the Caller Service in the Loxone Config file.
+- `loxid`=`504F11223344` - serial number of the Miniserver, the Miniserver needs to have a paid subscription of the  Cloud Service Caller.
+- `tel`=`004912345678` - phone number, which need to be called
+- `text`=`Schalter%20aus` - the text which will be said to you via text-to-speech
+
+This request triggers a http reply, which content can be ignored.
+
+    HTTP/1.1 200 OK\r\n
+    Date: Mon, 20 Feb 2019 00:11:22 GMT\r\n
+    Server: Apache/2.4.7 (Ubuntu)\r\n
+    X-Powered-By: PHP/5.5.9-1ubuntu4.14\r\n
+    Vary: Accept-Encoding\r\n
+    Transfer-Encoding: chunked\r\n
+    Content-Type: text/html\r\n
+    \n\r\n
+    4a\r\n == Length of following line without the \r\n suffix
+    2018-02-20 01:11:22:11.22.33.44:-----------------------------------<br>\n\r\n
+    3b\r\n
+    2018-02-20 01:11:22:11.22.33.44:TEXT2SPEECH START...<br>\n\r\n
+    46\r\n
+    2018-02-20 01:11:22:11.22.33.44:MINISERVER 504F11223344 ACTIVE.<br>\n\r\n
+    3d\r\n
+    2018-02-20 01:11:22:11.22.33.44:CALL TO 4912345678.<br>\n\r\n
+
+Within a few seconds you will get a phone call with the announcement. You can then enter a code, which will be forwarded to your Miniserver (assuming the dynamic DNS is working), it does so by using the `extip` URL and appending the code, like so for the code `1`: [http://dns.loxonecloud.com/504F11223344/dev/sps/io/caller/11223344-5566-7788-99aabbccddeeff00/1]()
+
+The Miniserver will reply accordingly, if the change was accepted:
+
+    GET /dev/sps/io/caller/11223344-5566-7788-99aabbccddeeff00/1 HTTP/1.1\r\n
+    Host: 11.22.33.44\r\n
+    Accept: */*\r\n
+    \r\n
+    HTTP/1.1 200 OK\r\n
+    Access-Control-Allow-Origin: \r\n
+    Access-Control-Allow-Credentials: true\r\n
+    Content-Type: text/xml\r\n
+    Content-Length: 131\r\n
+    Keep-Alive: timeout=10, max=1000\r\n
+    Connection: Keep-Alive\r\n
+    \r\n
+    <?xml version="1.0" encoding="utf-8"?>
+    <LL control="dev/sps/io/11223344-5566-7788-99aabbccddeeff11/pulse" value="1" Code="200"/>\r\n
+
+As you can see, the whole communication is not encrypted. Attacks are possible, but limited:
+
+- you need to know the Miniserver serial number, which has to have a paid subscription
+- the request to trigger a callback has to come from the IP address of the Miniserver
+
+As you can see: this would be easily possible for anybody within your home network. From this network you can fake callbacks with no problem. This could be especially tricky if the callback allows security relevant things, like unlocking doors.
+
+Could somebody from the outside hack this? Potentially, but only in a small window:
+
+- you need to catch the Caller request
+- within 2 minutes, you can trigger the callback URL, even with different parameters
+
+Is this all a big risk? Probably not, but Loxone could have done better – even without SSL.
+
+
 ## Loxone Update Server (update.loxone.com)
 
-[update.loxone.com]() is a server to serve all updates for the Loxone products, it also hosts the XML file, which is requested by the Miniserver and all other Loxone apps.
+Used if checking for "Automatic Updates" is enabled in Loxone Config. [update.loxone.com]() is a server to serve all updates for the Loxone products, it also hosts the XML file, which is requested by the Miniserver and all other Loxone apps. An update for the Miniserver is installed via an update of the the Loxone Config application. The Miniserver will then update all extensions and devices to the latest version automatically.
 
     http://update.loxone.com/updatecheck.xml?serial=504F11223344&version=10020326&reason=App
 
@@ -483,11 +610,79 @@ Loxone seems to use this to allow public beta tests of their software. Updates a
     </Miniserversoftware>
 
 
-Related to this, the webapp is also requesting
+## Loxone Monitor (monitorserver.loxone.com)
 
-    https://www.loxone.com/loxone-feed.php?channel=app&lang=enus?_=123456789
+The Monitor Server can be enabled in Loxone Config via the "Monitor Server" option. The purpose is to forward the logging, which can be seen in the Loxone Monitor application remotely to help diagnosing issues. The Monitor Server can decided what events are shown and at what detail via the response to the first request from the Miniserver:
 
-which requests the annoying advertisements shown in the top-right corner of the app. The `_` parameter is just a random number (actually a timer value) to avoid caching of the data.
+    http://monitorserver.loxone.com:80/?504F11223344
+
+Typically the responds looks like this (logging disabled)
+
+    HTTP/1.1 200 OK
+    Date: Wed, 01 May 2018 01:23:45 GMT
+    Server: Apache/2.2.22 (Debian)
+    X-Powered-By: PHP/5.4.45-0+deb7u2
+    Cache-Control: no-cache, must-revalidate
+    Expires: Mon, 26 Jul 1997 05:00:00 GMT
+    Content-Length: 107
+    Content-Type: application/xml
+    X-Pad: avoid browser bug
+
+    <?xml version="1.0"?>
+    <Log Version="10" LogKeep="true" NoIPchange="false">
+      <LogMode>Off</LogMode>
+    </Log>
+
+But the server could return something like this:
+
+    HTTP/1.1 200 OK
+    Date: Wed, 01 May 2018 01:23:45 GMT
+    Server: Apache/2.2.22 (Debian)
+    X-Powered-By: PHP/5.4.45-0+deb7u2
+    Cache-Control: no-cache, must-revalidate
+    Expires: Mon, 26 Jul 1997 05:00:00 GMT
+    Content-Length: 107
+    Content-Type: application/xml
+    X-Pad: avoid browser bug
+
+    <Log Version="10" LogKeep="true" NoIPchange="false">
+      <LogMode>on</LogMode>
+      <LogDest>/dev/udp/192.168.178.200/7777</LogDest>
+      <LogLevelCommon>moreinfo</LogLevelCommon>
+      <LogLevelSPS>moreinfo</LogLevelSPS>
+      <LogLevelProtocol>off</LogLevelProtocol>
+      <LogLevelBus>off</LogLevelBus>
+      <LogLevelFilesystem>off</LogLevelFilesystem>
+      <LogLevelNet>off</LogLevelNet>
+    </Log>
+
+This will forward all output to the the UDP port 7777 at the local IP address 192.168.178.200. It will send all possible common and SPS output, but none for Loxone Link (Bus), the filesystem or network access. These are the possible types of data, which can be monitored:
+
+| Type     | Description |
+| :------: | ----------- |
+| Common   | Displays general information about the Miniserver |
+| SPS      | Information about the PLC |
+| Protocol | Information on specific protocols such as NTP (time) or UDP |
+| Bus      | Information about the CAN bus link |
+| File     | Information about the SD card and memory system |
+| Network  | Network information for troubleshooting network |
+
+Here are the possible keys:
+
+- `Version` = major version of the Miniserver
+- `LogKeep` = boolean, unknown function.
+- `NoIPchange` = boolean, if true, the output is send to `/dev/udp/IPADDRESS/PORT` with IPADDRESS being the address of `monitorserver.loxone.com` the the default port being 7777.
+- `LogDest` = path for the log file, default is `/dev/null` (logging off)
+- `LogMode` = `on` or `off`
+- `LogLevelCommon` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelSPS` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelProtocol` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelBus` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelFilesystem` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogLevelNet` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
+- `LogStart` = Loxone timestamp as an integer
+- `LogDay` = integer, number of days logging should be active. Up to 7 days is possible.
+- `LogUntil` = UTC date/time string, can be used as an alternative to `LogDay` and supports a longer duration.
 
 
 ## Loxone Log Server (log.loxone.com)
@@ -512,47 +707,6 @@ Now the question: what data is in it? Typical crashlog related data:
 As you can see with the exception of the owner and the Latitude/Longitude of the Miniserver, there is not really any personal data in this block. And the coordinates are send to Loxone via the Weather report anyway.
 
 
-## Loxone Support Monitoring (monitorserver.loxone.com)
-
-The Monitor Server can be enabled in Loxone Config via the "Monitor Server" option, it sends this request:
-
-    http://monitorserver.loxone.com:80/?504F11223344
-
-It responds with:
-
-    HTTP/1.1 200 OK
-    Date: Wed, 01 May 2018 01:23:45 GMT
-    Server: Apache/2.2.22 (Debian)
-    X-Powered-By: PHP/5.4.45-0+deb7u2
-    Cache-Control: no-cache, must-revalidate
-    Expires: Mon, 26 Jul 1997 05:00:00 GMT
-    Content-Length: 107
-    Content-Type: application/xml
-    X-Pad: avoid browser bug
-
-    <?xml version="1.0"?>
-    <Log Version="10" LogKeep="true" NoIPchange="false">
-      <LogMode>Off</LogMode>
-    </Log>
-
-I haven't looked into it further, but I can guess that this allows Loxone to enable logging, which means all log output will be sent to them. Here are possible keys:
-
-- `Version` = major version of the Miniserver
-- `LogKeep` = boolean, unknown
-- `NoIPchange` = boolean, if true, the output is send to `/dev/udp/IPADDRESS/PORT` with IPADDRESS being the address of `monitorserver.loxone.com` the the default port being 7777.
-- `LogDest` = path for the log file, default is `/dev/null`
-- `LogMode` = `on` or `off`
-- `LogLevelCommon` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
-- `LogLevelSPS` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
-- `LogLevelProtocol` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
-- `LogLevelBus` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
-- `LogLevelFilesystem` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
-- `LogLevelNet` = `off`,`severe`,`serious`,`warning`,`info`,`moreinfo`
-- `LogStart` = Loxone timestamp as an integer
-- `LogDay` = integer, number of days logging should be active. Up to 7.
-- `LogUntil` = UTC date/time string
-
-
 ## Miniserver Web-Interface
 
 The Miniserver offers a HTTP interface at the HTTP port 80 (this port can be changed in Loxone Config). You can use a webbrowser to use the "Loxone Smart Home" directly on the server.
@@ -560,3 +714,33 @@ The Miniserver offers a HTTP interface at the HTTP port 80 (this port can be cha
 ## Miniserver FTP-Interface
 
 The Miniserver offers a FTP interface at the FTP port 21 (this port can be changed in Loxone Config). This is used to upload a configuration or download backups.
+
+The FTP server supports these commands:
+
+| FTP command | Description |
+| ----------: | :---------- |
+| QUIT        | Logout |
+| USER        | User Name |
+| PASS        | Password |
+| NOOP        | No-Op |
+| PASV        | Passive Mode |
+| PORT        | Data Port |
+| PWD, XPWD   | Print Directory |
+| SYST        | System |
+| TYPE        | Representation Type |
+| OPTS        | Options |
+| SITE        | Site Parameters |
+| CWD         | Change Working Directory |
+| CDUP        | Change to Parent Directory |
+| REIN        | Reinitialize |
+| FEAT        | Feature Negotiation |
+| SIZE        | File Size |
+| MDTM        | File Modification Time |
+| DELE        | Delete File |
+| LIST, NLST  | List, Name List	 |
+| MKD, XMKD   | Make Directory |
+| RETR        | Retrieve |
+| RNFR        | Rename From |
+| RNTO        | Rename From	 |
+| RMD, XRMD   | Remove Directory |
+| STOR        | Store |
