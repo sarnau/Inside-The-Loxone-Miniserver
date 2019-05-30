@@ -9,6 +9,7 @@ import struct
 import pprint
 import sys
 import datetime
+import zipfile
 
 pp = pprint.PrettyPrinter(indent=4)
 
@@ -51,11 +52,12 @@ def stm32_crc32(bytes_arr):
         length -= 4
     return crc
 
+archive = zipfile.ZipFile('LOXONE_SD.cdr.zip', 'r')
+f = archive.open('LOXONE_SD.cdr')
+
 def readSector(sectorNumber):
-    f = open('LOXONE_SD.cdr', 'rb')
     f.seek(sectorNumber*512, 0)
     sectorData = f.read(512)
-    f.close()
     return sectorData
 def formatData(data,n=64):
     str = binascii.hexlify(data).decode('utf-8')
