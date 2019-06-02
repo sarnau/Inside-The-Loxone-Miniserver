@@ -59,7 +59,7 @@ The 3 areas in the image are as follows:
 
 ## Firmware image area
 
-This area contains three full copies of the firmware at sector 0x0000, 0x4000 and 0x8000 within this area. The allows up to 8MB for the firmware data. And while the firmware is about 11MB large, it is compressed only about 1/3 of that, so the current firmware versions do fit comfortably.
+This area contains three full copies of the firmware at sector `0x0000`, `0x4000` and `0x8000` within this area. The allows up to 8MB for the firmware data. And while the firmware is about 11MB large, it is compressed only about 1/3 of that, so the current firmware versions do fit comfortably.
 
 The firmware data starts with one header sector, which only uses a few words:
 
@@ -72,7 +72,8 @@ The firmware data starts with one header sector, which only uses a few words:
 | 0x010  | Size of the compressed firmware in bytes. Used for decompressing the data. |
 | 0x014  | Size of the uncompressed firmware in bytes. Used after decompression to validate the success of the decompression. |
 
-During boot the Miniserver tests for the magic value and loads the newest version of the firmware. In case of an error, it tries the next firmware and so on. This avoids a dead server, if a firmware update or a single sector in the firmware area of the SD card failed.
+The first firmware at `0x0000` only acts as an emergency version, it never seems to be updated and always stays as-is. Either firmware at `0x4000` or `0x8000` are loaded, depending on which one has a newer version. If loading fails, it falls back to the older one and – if that one fails as well – back to the emergency version. This avoids a dead server, if a firmware update or a single sector in the firmware area of the SD card failed.
+
 
 ### Compression of the firmware
 
