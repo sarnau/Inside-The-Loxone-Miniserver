@@ -267,9 +267,9 @@ Also it is called every 60s, which feels excessive. It should be called whenever
 
 To find the IP address for a Miniserver, you need to know it's serial number and simply send this request: [http://dns.loxonecloud.com/504F11223344]()
 
-This will get resolved to: [http://504F11223344.dns.loxonecloud.com]()
+This will get resolved to [http://504F11223344.dns.loxonecloud.com]() which forwards directly to your Miniserver.
 
-which forwards directly to your Miniserver. Alternatively you can get the DNS status by sending this request [http://dns.loxonecloud.com/?getip&snr=504F11223344&json=true](), which provides you with a JSON reply:
+Alternatively you can get the DNS status by sending this request [http://dns.loxonecloud.com/?getip&snr=504F11223344&json=true](), which returns a proper JSON reply:
 
     {
       "cmd": "getip",
