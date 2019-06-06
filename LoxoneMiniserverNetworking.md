@@ -96,7 +96,7 @@ Miniservers will reply with one package:
 - `Prog:2019-04-24 21:08:03` is the date of the Loxone Config file.
 - `Type:0`
 - `HwId:A0000` is the hardware version of the Miniserver as documented in [Loxone Miniserver Hardware](LoxoneMiniserverHardware.md)
-- `IPv6:,0cd83b34:10020217/O` looks like it is supposed to contain the IPv6 of the Miniserver, but because it is not assigned one, it seems to return garbage, which looks like the serial number of a Air Base Extension with its firmware version.
+- `IPv6:,0c112233:10020217/O` looks like it is supposed to contain the IPv6 of the Miniserver, but because it is not assigned one, it seems to return garbage, which looks like the serial number of a Air Base Extension with its firmware version.
 
 ### Simple Service Discovery Protocol
 
