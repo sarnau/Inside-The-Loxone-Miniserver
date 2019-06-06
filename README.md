@@ -44,3 +44,13 @@ I am also providing a collection of Python scripts for the Miniserver, feel free
         - [Loxone Weather Station Tree](./NAT/LoxoneLinkNATTreeWeatherStation.md)
         - [Loxone Motion Sensor Tree](./NAT/LoxoneLinkNATTreeMotionSensor.md)
         - [Loxone LED Ceiling Light Tree](./NAT/LoxoneLinkNATTreeLEDCeilingLight.md)
+
+## Code Examples
+
+- `unpackLoxoneMiniserverFirmwareUpdate.py` - Uncompresses an `*.upd` firmware update, which contains the firmware for the Miniserver as well as an update for the Miniserver filesystem.
+- `analyzeLoxoneExtensionUpdates.py` - Analyzes the firmware updates for Loxone extension and devices (Name, Type, Version, CPU, ROM-Usage, RAM-Usage)
+- `loadLoxoneMiniserverStatistics.py` - Example on how to load the statistics from the Miniserver via FTP and parse the files for further processing.
+- `loadMiniserverConfigurationFile.py` - Load the current configuration from the Miniserver and uncompress it, so it can be opened with a text editor.
+- `LoxoneMonitorServer.py` - A Loxone Monitor Server proxy example to simulate the debugging options Loxone has on your server.
+- `LoxoneWeather.py` - A Loxone Weather Service proxy, which uses Darksky instead. It supports CSV and XML replies and also tries to match the icons.
+- `parseLoxoneSD.py` - Parse a ZIP compressed disk image of the Micro-SD card. This can be used to recover files from the SD card directly.
