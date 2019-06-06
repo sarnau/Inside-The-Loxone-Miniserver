@@ -4,7 +4,7 @@ The Loxone Miniserver Go is build around the same hardware, as the regular Minis
 
 - [Atmel SAM9G20 ARM CPU][1]
 - serial interface Flash memory ([AT25SF041][1b] from Adesto Technologies)
-- Two [256MB SDRAM][3] chips, providing 64MB of RAM to the Miniserver
+- Two [256MBit SDRAM][3] chips, providing 64MiB of RAM to the Miniserver
 - [4-megabit FLASH memory][2]
 - [Ethernet][4]
 - [Real-Time Clock][5]
@@ -16,12 +16,12 @@ Details about them can be found in my description of the Loxone Miniserver hardw
 The power supply is using a Micro-USB connector, generating the 3.3V needed for the board.
 
 Missing are most of the inputs and outputs:
+
 - no KNX port
-- no digital ins
+- no Digital In
 - no Relays / Digital Out
 - no Analog In
 - no Analog Out
-- no Digital In
 
 ## Air Base Extension in Miniserver Go
 

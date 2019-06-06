@@ -40,7 +40,7 @@ The wrapping file system on the SD card is ignored by the Miniserver, it only lo
 | -----: | :---------- |
 | 0x1CC  | base sector pointing to the begining of the `LOXONE_SD` file. |
 | 0x1D0  | number of reserved sectors, they are ignored, typically a value like 5. |
-| 0x1D4  | number of sectors reserved for the firmware image. Typically `0x10005` (ca. 64MB), which feels like a bug, because the additional 5 is not needed and already part of the reserved sectors, but it also doesn't harm. |
+| 0x1D4  | number of sectors reserved for the firmware image. Typically `0x10005` (ca. 64MiB), which feels like a bug, because the additional 5 is not needed and already part of the reserved sectors, but it also doesn't harm. |
 | 0x1D8  | offset behind the filesystem relative to the filesystem start. This value *minus* the one in `0x1D4` is the size of the filesystem in sectors. |
 | 0x1DC  | unknown, the value seems to be `0x20`. Might be the number of sectors per cluster, but this is hardcoded in the filesystem and this value is not used. |
 | 0x1E0  | mode for the transaction cache, typically 0. More to that below at the transaction record. |
@@ -54,12 +54,12 @@ Note: a sector is *always* 512 bytes.
 The 3 areas in the image are as follows:
 
 1. A 5 sector reserved area at the beginning. The first sector of the file has a copy of the *FS Information Sector*, the rest is filled with zeros.
-2. The firmware image area, about 32MB in size.
+2. The firmware image area, about 32MiB in size.
 3. The writeable file system
 
 ## Firmware image area
 
-This area contains three full copies of the firmware at sector `0x0000`, `0x4000` and `0x8000` within this area. The allows up to 8MB for the firmware data. And while the firmware is about 11MB large, it is compressed only about 1/3 of that, so the current firmware versions do fit comfortably.
+This area contains three full copies of the firmware at sector `0x0000`, `0x4000` and `0x8000` within this area. The allows up to 8MiB for the firmware data. And while the firmware is about 11MiB large, it is compressed only about 1/3 of that, so the current firmware versions do fit comfortably.
 
 The firmware data starts with one header sector, which only uses a few words:
 
@@ -114,7 +114,7 @@ It only supports files and directories. Links, file attributes, access rights, e
 
 ### Clusters
 
-Note: The system combines 32 sectors into one cluster. This means the smallest size of a non-zero file is 16kb. Addressing of data however is always done via sector numbers, relative to the beginning of the file system. Clusters are only used for managing which sectors are used and which ones are empty.
+Note: The system combines 32 sectors into one cluster. This means the smallest size of a non-zero file is 16KiB. Addressing of data however is always done via sector numbers, relative to the beginning of the file system. Clusters are only used for managing which sectors are used and which ones are empty.
 
 A cluster can contain either system records or raw file data.
 
@@ -147,8 +147,8 @@ Regular file data is written as raw data to disk. No duplication, no checksums, 
 
 | Type | Name | Description |
 | ---- | ---- | :---------- |
-| LXFF | File | First record of a file, allows up to 1.3MB large files. |
-| LXFE | File Extension | Additional records to add up to 1.9MB to a file. |
+| LXFF | File | First record of a file, allows up to 1.3MiB large files. |
+| LXFE | File Extension | Additional records to add up to 1.9MiB to a file. |
 | LXFD | Directory | First record of a directory with up to 44 entries. |
 | LXFC | Directory Extension | Additional records to add up to 61 entries to a directory |
 | LXFT | Transaction | Double sectors used to track transactions |
@@ -164,12 +164,12 @@ Regular file data is written as raw data to disk. No duplication, no checksums, 
 | 0x084-0x087 | creation timestamp | Loxone timestamp of the creation date/time of this file, like a UNIX timestamp, but starting at 1.1.2009 |
 | 0x088-0x08B | modification timestamp | Loxone timestamp of the last modification date/time of this file. Set on close. |
 | 0x08C-0x08F | file size     | Size of the file in bytes |
-| 0x090-0x093 | maximum file size | This is the maximum size, before additional clusters need to be allocated. It is typically – but not necessarily – the file size rounded up to the next 16kb |
+| 0x090-0x093 | maximum file size | This is the maximum size, before additional clusters need to be allocated. It is typically – but not necessarily – the file size rounded up to the next 16KiB |
 | 0x094-0x1EC | cluster list  | List of up to 86 sectors pointing to the start of clusters containing the actual file data |
 
 ### File extension record
 
-If a file is too large, extension records are added. They are linked via the link sector at offset `0x0C` to the file record. Because a file record is stored in a cluster, a file typically has 16KB/2 (duplication sectors) minus 1 (the file record) == 15 file extension records, which is enough for almost 30mb large files. But it can be extended by allocating additional clusters for file extension records and linking them to the file record.
+If a file is too large, extension records are added. They are linked via the link sector at offset `0x0C` to the file record. Because a file record is stored in a cluster, a file typically has 16KiB/2 (duplication sectors) minus 1 (the file record) == 15 file extension records, which is enough for almost 30MiB large files. But it can be extended by allocating additional clusters for file extension records and linking them to the file record.
 
 |      Offset |          Name | Description |
 | ----------- | ------------- | :---------- |
@@ -214,13 +214,13 @@ The system needs to keep track, which clusters are used and which ones are avail
 | 0x000-0x003 | available clusters | available clusters in this record |
 | 0x004-0x1EB | bitmap        | 122 32-bit values used as a bitmap |
 
-One record can store the state of 32 * 122 = 3904 clusters or 61MB. The number of records needed depend on the size of the file system. The allocation record always starts at sector 64 and extends from there. For a 2GB disk image it is 64 sectors large.
+One record can store the state of 32 * 122 = 3904 clusters or 61MiB. The number of records needed depend on the size of the file system. The allocation record always starts at sector 64 and extends from there. For a 2GB disk image it is 64 sectors large.
 
 The available clusters field is an optimization, which counts the zero bits in the bitfield. It allows to quickly find allocation records with available space.
 
 The number of allocation records is depended on the size of the volume, because it needs to store the status for all possible clusters. In the above example the number of sectors is 0x3AAB00. To calculate the cluster number we have to do this:
 
-    sectorcount * 512 (bytes per sector) / 16kb (size of a cluster) / (122*32) (number of bits in the allocation record) + 1 (rounding up)
+    sectorcount * 512 (bytes per sector) / 16KiB (size of a cluster) / (122*32) (number of bits in the allocation record) + 1 (rounding up)
     clustercount = (2 * sectorcount + 31) / 32
 
 For 0x3AAB00 sectors we need 31 allocation records and 2 clusters. Twice the sectors because every sector in the allocation table is stored twice on disc and `+31)/32` to round up, not down. 32 sectors are in a cluster. So, in this example 2 clusters after the root directory are reserved for the allocation table. Unnecessary sectors (because of rounding) in this clusters are simple empty (all zeros).

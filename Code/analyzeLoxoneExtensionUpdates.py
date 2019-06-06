@@ -161,8 +161,6 @@ def stm32_crc32(bytes_arr):
   return crc
 
 def analyzeUpdatefile(filename):
-#  if filename != '10000924_RoomsensorTree.upd':
-#    return
   f = open(filename, "rb")
   try:
       buffer = f.read()

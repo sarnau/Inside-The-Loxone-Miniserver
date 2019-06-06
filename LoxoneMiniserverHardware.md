@@ -2,7 +2,7 @@
  
 I'd like to explain some technical details of the Loxone Miniserver and the Loxone Miniserver Go. The Miniserver (as well as all extensions) are ARM based, just like all modern mobile phones. It is clocked at just 8MHz.
 
-The Miniserver is ARM based. The CPU is booting from a 512kb flash memory. This code then loads the actual operating system from the SD Card into the additional 64MB of memory and executes it from there.
+The Miniserver is ARM based. The CPU is booting from a 512KiB flash memory. This code then loads the actual operating system from the SD Card into the additional 64MiB of memory and executes it from there.
 
 ## Hardware id
 
@@ -12,19 +12,19 @@ There are several different versions of Miniserver hardware:
 - ` 60000` - KNX and Ethernet changes with different reset support
 - ` 80000` - unknown changes
 - ` a0000` - some SD card change, new Ethernet chip, [KSZ8081RNB][4b]
-- ` c0000` - 128MB of SRAM (twice the amount of older versions)
+- ` c0000` - 128MiB of SRAM (twice the amount of older versions)
 - `100000` - Miniserver Go (based on the `a0000` Miniserver)
 
 
 ## CPU, Flash Memory, SRAM
 
-The CPU is an Atmel [AT91SAM9G20][1] from Microchip. It is a 3,3V 400MHz ARM926 with 32kb internal SRAM and 64kb internal ROM. It is paired with a serial interface Flash memory ([AT25DF041A][2] from Adesto Technologies), which is updatable by Loxone – it is one of two chips mounted on the back of the board. This flash memory also contains non-volatile memory used by the Miniserver, like encryption keys, which are not stored on the SD card. The other important chips are two SD RAM chips ([H57V2562GTR][3] from SK Hynix) as additional memory with 256MBit each adding another 64MB of memory.
+The CPU is an Atmel [AT91SAM9G20][1] from Microchip. It is a 3,3V 400MHz ARM926 with 32KiB internal SRAM and 64KiB internal ROM. It is paired with a serial interface Flash memory ([AT25DF041A][2] from Adesto Technologies), which is updatable by Loxone – it is one of two chips mounted on the back of the board. This flash memory also contains non-volatile memory used by the Miniserver, like encryption keys, which are not stored on the SD card. The other important chips are two SD RAM chips ([H57V2562GTR][3] from SK Hynix) as additional memory with 256MBit each adding another 64MiB of memory.
 
 ## Function of the AT25 FLASH memory
 
 The FLASH memory contains the boot firmware for the CPU, which reads the Miniserver firmware from the MicroSD card into the RAM and launches it.
 
-And while it is 512kb large it only uses about 12kb of its capacity. 10.25kb are reserved for the boot loader, followed by 256 bytes for an XML file with the hardware serial numbers and a 1.5kb area with the private encryption key.
+And while it is 512KiB large it only uses about 12KiB of its capacity. 10.25KiB are reserved for the boot loader, followed by 256 bytes for an XML file with the hardware serial numbers and a 1.5KiB area with the private encryption key.
 
 The XML contains the SSDP `modelNumber` as the `Type`; the UUID, also used for SSDP; the MAC or serial number of the Miniserver and the production date.
 
