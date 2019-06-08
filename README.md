@@ -54,3 +54,9 @@ I am also providing a collection of Python scripts for the Miniserver, feel free
 - `LoxoneMonitorServer.py` - A Loxone Monitor Server proxy example to simulate the debugging options Loxone has on your server.
 - `LoxoneWeather.py` - A Loxone Weather Service proxy, which uses Darksky instead. It supports CSV and XML replies and also tries to match the icons.
 - `parseLoxoneSD.py` - Parse a ZIP compressed disk image of the Micro-SD card. This can be used to recover files from the SD card directly.
+- `decompressMiniserverArchive.py` - Decompresses the `/commonv2.agz` and `/images.zip` into `./web/`. The Miniserver keeps these files compressed and only the webserver serves them uncompressed. There are more files in the `/web/` hierarchy, as can be seen with an FTP client:
+
+    - `/data/LoxAPP3.json` - a simplified version of the configuration
+    - `/data/weatheru.bin` - Recent weather data in 108 byte chunks, see in the network section under Weather Server
+    - `/stats/index.html` - Dynamic webpage with the server statistics
+    - `/stats/styles.css` - CSS for the statistics webpage

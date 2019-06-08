@@ -437,6 +437,27 @@ The picto-codes for the weather icons seem to come from [Meteoblue](https://cont
 | 34         | Overcast with light snow (Loxone: Leichter Schneeschauer) |
 | 35         | Overcast with mixture of snow and rain (Loxone: Schneeregen) |
 
+Every time data is received, it is appened to `/data/weatheru.bin` on the webserver of the Miniserver (up to 200 entries). The data is in 108 byte chunks as follows:
+
+- 4 Bytes unsigned integer: Loxone Timestamp
+- 4 Bytes integer: WW (see `Key` above)
+- 4 Bytes integer: DD (see `Key` above)
+- 4 Bytes integer: RAD4C (see `Key` above)
+- 4 Bytes integer: RH (see `Key` above)
+- 8 Bytes double: TT (see `Key` above)
+- 8 Bytes double: HI (see `Key` above)
+- 8 Bytes double: TD (see `Key` above)
+- 8 Bytes double: RR1H (see `Key` above)
+- 8 Bytes double: FF (see `Key` above)
+- 8 Bytes double: PP0 (see `Key` above)
+- 4 Bytes integer: LC (see `Key` above)
+- 4 Bytes integer: MC (see `Key` above)
+- 4 Bytes integer: HC (see `Key` above)
+- 4 Bytes integer: probability of Precipitation (see in the XML format above)
+- 8 Bytes double: RAD (see `Key` above)
+- 8 Bytes double: Snow Fraction (see in the XML format above)
+- 8 Bytes double: CAPE (see in the XML format above)
+
 
 ## Cloud Service Caller (caller.loxone.com)
 
