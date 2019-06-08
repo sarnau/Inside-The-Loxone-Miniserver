@@ -18,10 +18,28 @@ ftp = ftplib.FTP(loxoneMiniServerIP)
 ftp.login(adminUsername, adminPassword)
 
 # find the most current configuration file on the server:
+
+# Ignore all the special cases, because the Miniserver does load in this order:
+#
+# 1. /prog/Emergency.LoxCC (only if several reboots within 10 minutes happen!)
+# 2. /prog/sps_new.zip
+# 3. /prog/sps_new.LoxCC
+# 4. all `/prog/sps_vers_yyyymmddhhmmss.zip`
+#    or `/prog/sps_vers_yyyymmddhhmmss.LoxCC` files with `vers` less
+#    or equal the max. version allowed for the Miniserver
+#    (148 = 09030326; 162 = 10020326)
+# 5. /prog/sps.zip
+# 6. /prog/sps_old.zip
+# 7. /prog/sps.LoxPLAN (a very old fileformat)
+# 8. /prog/Default.Loxone or /prog/DefaultGo.Loxone, depending on the type of the Miniserver
+
 ftp.cwd('prog')
 filelist = []
 for line in ftp.nlst():
-  filelist.append(line[38:]) # skip all the stuff in front of the filename
+  filename = line[38:] # skip all the stuff in front of the filename
+  if filename.startswith('sps_'):
+    if filename.endswith('.zip') or filename.endswith('.LoxCC'):
+      filelist.append(filename)
 filename = sorted(filelist)[-1]
 
 data = []
