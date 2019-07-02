@@ -61,3 +61,5 @@ I am also providing a collection of Python scripts for the Miniserver, feel free
     - `/data/weatheru.bin` - Recent weather data in 108 byte chunks, see in the network section under Weather Server
     - `/stats/index.html` - Dynamic webpage with the server statistics
     - `/stats/styles.css` - CSS for the statistics webpage
+
+Sample extension and tree extension/devices for the STM32 ARM CPU are available at https://github.com/sarnau/LoxLink
