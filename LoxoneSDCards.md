@@ -21,7 +21,7 @@ The detailed information collected during initialization about the card can be r
 What does these things mean?
 
 - `read` = measured data read performance in kB/s after 1MB of reading a test file
-- `write` = measured data read performance in kB/s after 1MB of writing a test file
+- `write` = measured data write performance in kB/s after 1MB of writing a test file
 - `no error` (0 0) = number of errors with this SD card (first number/error code = 0: no error, 1: read error, 2: verify error, second number: number of errors)
 - `ManufactorerID` (yes, that is probably an original Austrian typo) = The manufacturer of the card. The ID is assigned by the SD Group.
 - `Date` = Manufacturing date of the card
