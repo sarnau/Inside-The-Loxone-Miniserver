@@ -288,7 +288,7 @@ Without the json flag, you get an XML reply. Whatever you prefer, but Loxone has
 ## Mailer / Loxone Mailer Service (mail.loxonecloud.com)
 The Miniserver can send emails with status updates to any email account.
 
-When using the tandard Mailer service, you have to provide an SMTP server with username and password to send emails, it does support TLS security vis SMTP (Thanks for Stefan for pointing this out)
+When using the standard Mailer service, you have to provide an SMTP server with username and password to send emails, it does support TLS security via SMTP (Thanks for Stefan for pointing this out)
 
 The Loxone Mailer Service is a special mail server from Loxone, which does encrypt data between the Miniserver and the mail server. The disadvantage is a potential limit on the number of emails you can send and that you are relying on Loxone as well as trusting them with you data. Interestingly it is not using SMTP, but HTTPS to send the data. It works in two steps:
 
@@ -308,7 +308,7 @@ To receive notifications you have to to an HTTPS POST to `https://push.loxoneclo
 
 ## Weather Service (weather.loxone.com)
 
-Loxone also offers a subscription to weather service. This service is offered via [Meteo Blue](https://www.meteoblue.com), but routed via a Loxone server [weather.loxone.com](), which validates the subscription.
+Loxone also offers a subscription to weather service. This service seems to be offered via [Meteo Blue](https://www.meteoblue.com), but routed via a Loxone server [weather.loxone.com](), which validates the subscription. When started the weather service some years ago, Loxone used Ubimet as weather service. But this changed some time ago. Loxone does not disclose which service they use nowadays.
 
 Several times a day the Miniserver sends the following request: [http://weather.loxone.com:6066/forecast/?user=loxone_504F11223344&coord=13.8408,48.6051&asl=20&format=1]()
 
@@ -317,9 +317,9 @@ You notice a couple of parameters:
 - user=loxone_504F11223344 - this is the user account based on the serial number of the Miniserver 
 - coord=13.8408,48.6051 - GPS location for the weather report (longitude,latitude). As entered in Loxone Config.
 - asl=200 - altitude over sea level in meter. Not sure why this is needed, because `coord` implies it. Can be entered as Elevation in Loxone Config. This parameter seems optional, but the Miniserver always provides it.
-- format=1 - the Weather server can return two different report formats: `format=0`, which is XML or `format=1`, which is a mixture between XML and CSV from Meteo Blue. The Miniserver understands both detects the right format automatically.
+- format=1 - the Weather server can return two different report formats: `format=0`, which is XML or `format=1`, which is a mixture between XML and CSV from Meteo Blue. The Miniserver understands both and detects the right format automatically.
 
-If have not found out, when the XML/CSV format is requested, it seems that it can happen after a reboot. Typically the Miniserver seems to request XML. But as I said, the server could ignore the format and simply return whatever is more convenient.
+I have not found out, when the XML/CSV format is requested, it seems that it can happen after a reboot. Typically the Miniserver seems to request XML. But as I said, the server could ignore the format and simply return whatever is more convenient.
 
 If there is no paid subscription, the response will be this:
 
@@ -334,7 +334,7 @@ If there is no paid subscription, the response will be this:
     <ServiceExceptionReport><ServiceException>authentication exception: user is not active</ServiceException></ServiceExceptionReport>
 
 
-Here a shortened example for the XML/CSV format. I've only shown the first 2 and last 2 entries. Overall it is 181 entries large. As you can see it has a header, describing the individual columns in the CSV block below. It also has a `valid_until` entry, which contains the subscription expiry date. The Miniserver will start warning, once you hit that date. `Kollerschlag` is a bug, it seems to not know the city, so it falls back to `Kollerschlag`. Longitude and latitude are correct, as well as the elevation. Sunrise/Sunset are also provided, but the Miniserver does it's own calculation locally.
+Here is a shortened example for the XML/CSV format. I've only shown the first 2 and last 2 entries. Overall it is 181 entries large. As you can see it has a header, describing the individual columns in the CSV block below. It also has a `valid_until` entry, which contains the subscription expiry date. The Miniserver will start warning, once you hit that date. `Kollerschlag` is a bug, it seems to not know the city, so it falls back to `Kollerschlag`. Longitude and latitude are correct, as well as the elevation. Sunrise/Sunset are also provided, but the Miniserver does it's own calculation locally.
 
 The report has to be hourly and lasts about 7 days into the future. The Miniserver ignores a lot of the data, especially the cloud coverage at different altitudes does not seem to be used.
 
