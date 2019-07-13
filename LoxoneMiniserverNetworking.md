@@ -288,7 +288,7 @@ Without the json flag, you get an XML reply. Whatever you prefer, but Loxone has
 ## Mailer / Loxone Mailer Service (mail.loxonecloud.com)
 The Miniserver can send emails with status updates to any email account.
 
-When using the tandard Mailer service, you have to provide an SMTP server with username and password to send emails, it does support TLS security vis SMTP (Thanks for Stefan for pointing this out)
+When using the standard Mailer service, you have to provide an SMTP server with username and password to send emails, it does support TLS security via SMTP (Thanks for Stefan for pointing this out)
 
 The Loxone Mailer Service is a special mail server from Loxone, which does encrypt data between the Miniserver and the mail server. The disadvantage is a potential limit on the number of emails you can send and that you are relying on Loxone as well as trusting them with you data. Interestingly it is not using SMTP, but HTTPS to send the data. It works in two steps:
 
