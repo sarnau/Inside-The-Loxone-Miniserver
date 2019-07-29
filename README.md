@@ -63,5 +63,3 @@ I am also providing a collection of Python scripts for the Miniserver, feel free
     - `/stats/styles.css` - CSS for the statistics webpage
 
 - `LoxoneLink.py` - Python sample code to analyze the Loxone Link/Loxone Tree protocol, as well as a sample implementation of many extensions and tree devices. Not intended for production, but for learning. It uses [USBtin](https://www.fischl.de/usbtin/), but you can probably adjust it to other devices with minimal effort.
-
-Another sample extension and tree extension/devices for the STM32 ARM CPU are available at https://github.com/sarnau/LoxLink
