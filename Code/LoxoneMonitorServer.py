@@ -6,7 +6,7 @@ import re
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 import threading
 
-LOCAL_IP = '192.168.178.60'
+LOCAL_IP = '192.168.178.200'
 
 # Try loading the english strings to match the logging of the Loxone Monitor software
 strDict = {}
@@ -204,14 +204,14 @@ class Proxy(SimpleHTTPRequestHandler):
             self.wfile.write(bytes('''<?xml version="1.0"?>
 <Log Version="10" LogKeep="true" NoIPchange="false">
   <LogMode>on</LogMode>
-  <LogDest>/dev/udp/192.168.178.60/7777</LogDest>
+  <LogDest>/dev/udp/%s/%d</LogDest>
   <LogLevelCommon>moreinfo</LogLevelCommon>
   <LogLevelSPS>moreinfo</LogLevelSPS>
   <LogLevelProtocol>moreinfo</LogLevelProtocol>
   <LogLevelBus>moreinfo</LogLevelBus>
   <LogLevelFilesystem>moreinfo</LogLevelFilesystem>
   <LogLevelNet>moreinfo</LogLevelNet>
-</Log>''', 'UTF-8'))
+</Log>''' % (UDP_IP,UDP_PORT), 'UTF-8'))
         else:
             self.send_response(404)
             self.end_headers()
