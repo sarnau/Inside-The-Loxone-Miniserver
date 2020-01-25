@@ -114,6 +114,8 @@ To send more than 7 bytes of data for a command, the Miniserver sends fragmented
 
 The fragments are buffered in the extension till all are transmitted and simply ignored silently if e.g. the checksum is wrong. The type of the block is very important for an extension to differentiate between different large packages, e.g. configuration data has a type of `0x06`.
 
+New for Loxone Miniserver 10.3: the Authorization Request is `0x18`, the Authorization Reply is `0x19`. The content of the package and management is explained in the Loxone Link NAT protocol section. It is identical to NAT extensions.
+
 ## Communication Phase
 
 There are three specific phases for the communication:

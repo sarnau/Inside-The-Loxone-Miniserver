@@ -161,6 +161,9 @@ The 4-bit devices type from legacy devices was replaced by 16-bit value in NAT e
 |  `0x8017` | LED Spot WW Tree |
 |  `0x8018` | Power Tree (unreleased) |
 |  `0x8019` | Nano 2 Relay Tree |
+|  `0x801a` | Ahri Tree (unreleased) |
+|  `0x801b` | Magnus Tree (unreleased) |
+|  `0x801c` | NFC Code Touch Tree (unreleased) |
 
 
 ## NAT Commands
@@ -205,6 +208,8 @@ Commands fall into 3 groups:
 |  `0x1b`   | Tree Shortcut Test | S→E | Used by the Tree Extension. Sent by the Miniserver to test if a reported shortcut on the Tree Bus still exists. |
 |  `0x1c`   | KNX Send Telegram | ? | Used by an unknown KNX extension |
 |  `0x1d`   | KNX Group Address Config | ? | Used by an unknown KNX extension |
+|  `0x1e`   | Group Identify | ? | 16-bit:array element count, 16-bit: flag, 32-bit: ???, 6-byte array:[32-bit:serial, 8-bit:index , 8-bit:filler] |
+|  `0x1f`   | Tree Link Sniffer Packer | ? | ? |
 
 
 | Command | Phase    | Dir | Description |
@@ -220,15 +225,19 @@ Commands fall into 3 groups:
 |  `0x88` | composite RGBW Value | S→E | Set a composite RGBW value with red:`B3`,green:`B4`,blue:`B5` and white:`B6` and a fading time of `val16` |
 |  `0x89` | Keypad Value | S←E | Entered value on a Keypad |
 |  `0x8a` | composite white Value | S→E | 15 byte fragmented package. Set a composite white value with value1:`B3`,value2:`B4`,value3:`B5`,value4:`B6`, fading time 1:`B7+(B8<<8)`, fading time 2:`B9+(B10<<8)`, fading time 3:`B11+(B12<<8)`, fading time 4:`B13+(B14<<8)`  |
-|  `0x90` | Crypt Digital Value | | After decryption, treated like "Digital Value" |
-|  `0x91` | Crypt Analog Value | | After decryption, treated like "Analog Value" |
-|  `0x92` | Crypt Code Value | ? | ? |
-|  `0x93` | Crypt NFC Value | ? | ? |
-|  `0x94` | Crypt Key Value | ? | ? |
-|  `0x98` | Crypt device ID Response | ? | ? |
-|  `0x99` | Crypt device ID Request | ? | ? |
-|  `0x9a` | Crypt Challenge Request | ? | ? |
-|  `0x9b` | Crypt Challenge Response | ? | ? |
+|  `0x8d` | Tree Internorm Data Packet | ? | ? |
+|  `0x90` | Crypt Digital Value | | After decryption, treated like "Digital Value" – only used by NFC Keypad |
+|  `0x91` | Crypt Analog Value | | After decryption, treated like "Analog Value" – only used by NFC Keypad |
+|  `0x92` | Crypt Code Value | ? | Digits entered on NFC Keypad |
+|  `0x93` | Crypt NFC Value | ? | NFC ID recognozed on NFC Keypad |
+|  `0x94` | Crypt Key Value | ? | Used to encrypt send/receive values – only used by NFC Keypad |
+|  `0x98` | Crypt Device ID Reply | S←E | Reply from the Tree device to the Miniserver with the UID |
+|  `0x99` | Crypt Device ID Request | S→E | For Tree devices the Miniserver requests the 12-byte STM32 UID |
+|  `0x9a` | Crypt Challenge Rolling Key Reply | ? | Used to encrypt send/receive values – only used by NFC Keypad |
+|  `0x9b` | Crypt Challenge Rolling Key Request | ? | Used to encrypt send/receive values – only used by NFC Keypad |
+|  `0x9c` | Crypt Challenge Authorization Request | S→E | Miniserver sends challenge to extension |
+|  `0x9d` | Crypt Challenge Authorization Reply | S↔E | Extension sends reply back to the Miniserver |
+|  `0xef` | Firmware Update (new) | S→E | New firmware update format, it sends blocks as fragmented data |
 
 The analog value is quite complex. `val32` is the value, but the flags in `val16` define how the value is interpreted:
 
@@ -321,6 +330,56 @@ Besides these phases extensions and devices can report status changes at any tim
 4. For each Tree extension the Miniserver will now configure the devices behind it and search for unknown devices. This happens in the same way as it searched for Extensions:
     1. Send a "NAT offer confirm" to all known devices with the Tree extension NAT and a new device NAT. The device will reply with a "Start Info" command.
     2. Then send a "Identify unknown extension" multicast with the Tree extension NAT and a device multicast NAT of `0xFF`. This will trigger all devices to reply with a "NAT offer request" (the device ID is `0x00`) to which the server confirms with a "NAT offer confirm" and a final "Start Info" from the device. Unknown devices will always be parked (NAT has bit 7 set)
+
+##### Authorization of Extensions and Tree devices
+
+Starting with the latest 10.3 version of the Miniserver, the Miniserver now requires all Extensions and Tree devices to be authorized.
+
+This is done to avoid hobbyists to make their own hardware. Why only hobbyists? Well, as a professional product pirate you would simply clone the hardware design and also copy the original firmware – then the Miniserver will see no difference between original Loxone hardware and copies and even happily install new firmware updates on the cloned hardware. Honestly: I think Loxone should simply _allow_ others to make devices and simply _charge_ professionals a potentially expensive license, like any other company in the world do. Locking out fans is generally not a good idea. End of my rant…
+
+Ok, now lets explain the mechanism, it's a bit convoluted but not complex.
+
+Authorization packages are 16 or 32 byte fragmented packages. They are encrypted with AES-128 CBC. The key and IV generated by the serial number of the device.
+
+The Miniserver sends a Challenge Request package, which is decrypted with the serial number of the extension or device. It is then validated to verify the encryption succeeded. If the package was valid, the extension or device generates an AES key/iv pair from the serial number, a 12-byte device ID (which is constant for all extension, but Tree devices, for which it is the STM32 UID) and a random number, which was in the Challenge Request package. The AES key/iv pair is then used to encrypt a Challenge Reply package, which also has a header, a new random value and 8 filler bytes, which are ignored by the Miniserver. The Miniserver also solves the challenge (all 3 required values are known to the Miniserver) to try to decrypt the Challenge Reply package with the calculated AES key/iv values. If it didn't succeed, it retries – I think – more 6 times, before the extension or device is put offline with the error message "Authorization failed".
+
+Tree devices have one more layer, probably inherited from the NFC Keypad, which had this before all other Tree devices. For these devices the challenge needs to know the 12-byte device ID. It is request before the challenge via a Device ID Request. The decryption of the request is using a different AES key/iv master compared to the Challenge Request, but is otherwise the same. The device always replies with a 32-byte Device ID Reply package after receiving this request, but if the request was invalid, it will reply an encrypted package with an invalid header and no device ID. If the reply was valid, the device ID is stored with the serial number of the device inside the `/sys/device/settings.bin` file and _never_ requested again. That said: you can just delete this file via any FTP client directly on the Miniserver and reboot. It will automatically be recreated after the Miniserver requested new device IDs. This device ID is then used in the challenge instead of the constant one, which is used for all legacy extensions and NAT based extensions. Only Tree devices support the device ID. I am not sure _why_, because at least for NAT based extensions it is even a special case to not do this.
+
+There is a 3rd encryption/decryption way, which is used to encrypt packages with values. This is currently only used for the NFC Keypad. The algorithm is almost the same, but uses different AES key/iv and sending and receiving these data packages. It also uses a rolling key mechanism, so after every package send/received the iv changes – every 10s or at init it re-syncs, so that a lost package does not break the transfer forever. I am not gonna document this here, because the need for your own NFC Keypad is probably minor.
+
+Ok, next step with more technical details:
+
+All packages start with a two 32-bit values as the header. The first 32-bit value is always `0xDEADBEEF`, which acts as a check if the package was decrypted correctly. The next 32-bit value is a random value, which is randomizing the encrypted packages, but also used as a parameter for the challenge during the Authoization phase. 8 more bytes are following, typically they contain no information and are used as padding to create 16-byte packages (needed for the AES-128). The Device ID Reply package is 32-byte large, because the device ID is 12-byte large.
+
+For encryption/decryption we need 5 constants, which are stored in the code of the Miniserver and all extensions – I reference them by name.
+- `CryptoCanAlgoKey` - 16-byte AES key
+- `CryptoCanAlgoIV` - 16-byte AES IV
+- `CryptoCanAlgoLegacyKey` - 16-byte AES key
+- `CryptoCanAlgoLegacyIV` - 16-byte AES IV
+- `CryptoMasterDeviceID` - 12-byte device ID / STM32 UID, used for all extensions, but not Tree devices.
+
+`CryptoCanAlgo_DecryptInitPacket` is used to decrypt the Authorization Request. It is not using the CryptoCanAlgoKey/CryptoCanAlgoIV directly, but modifies it with the 32-bit serial number of the device. The AES key is split into 32-bit words, which are XORed with the inverted serial number. The AES iv is split into 32-bit words, which are XORed with the serial number. Then the 16-byte block is decrypted with a standard AES-128 CBC. `CryptoCanAlgo_EncryptInitPacket` is the above one for encryption – only needed by the Miniserver.
+
+`CryptoCanAlgo_DecryptInitPacketLegacy` and `CryptoCanAlgo_EncryptInitPacketLegacy` is identical to the above functions, it just uses the legacy AES key/iv. It is used for device ID requests/replies and to send rolling key updates.
+
+`CryptoCanAlgo_DecryptDataPacket` and `CryptoCanAlgo_EncryptDataPacket` are used to decrypt the Challenge Reply and rolling key based value encryption. The do not use the serial number, but the AES key/iv pair generated key by the solver of the challenge. The iv from the solver is just a 32-bit value, while the key is a 128-bit value. The four 32-bit words of the key are XORed by the iv value and the AES IV, which has to be 128-bit is simply the 32-bit IV value four times.
+
+`CryptoCanAlgo_SolveChallenge` is solving a challenge presented by the Miniserver. It takes a 32-bit random value, send by the Miniserver in the Challenge Request package, the device serial number and the 12-bit device ID. These values are combined into a 20-byte block: 12-byte device ID, the 32-bit random number and the 32-bit serial number. The 128-bit AES key consists out of four 32-bit values:
+
+    aesKey[0] = RSHash(20-byte block)
+    aesKey[1] = JSHash(20-byte block)
+    aesKey[2] = DJBHash(20-byte block)
+    aesKey[3] = DEKHash(20-byte block)
+    aesIV = RSHash(20-byte block with every byte being XORed with 0xA5 before)
+
+A lot of different hash functions, picked from a popular hash list…
+
+RSHash = Robert Sedgwick's "Algorithms in C" hash function.
+JSHash = A bitwise hash function written by Justin Sobel. Ignores the seed when 0.
+DJBHash = An algorithm produced by Professor Daniel J. Bernstein and shown first to the world on the usenet newsgroup comp.lang.c. It is one of the most efficient hash functions ever published. Substitutes the algorithm's initial value when the seed is non-zero.
+DEKHash = An algorithm proposed by Donald E. Knuth in "The Art Of Computer Programming, Volume 3", under the topic of sorting and search chapter 6.4. Substitutes the algorithm's initial value when the seed is non-zero.
+
+This is all that is needed. The encryption is quite insecure, because for non-tree devices you can simply decrypt packages picked of the CAN bus. The only variance is a 32-bit value (the serial number), which can be brute forced (or found out during a reboot of the Miniserver). The random number range is typically also only a low value and can be brute forced, if necessary. The device ID can be requested at any time from a device, not need to hack it. Is there a better solution? No, if the system should also be tolerant to lost packages every now and then. It feels overkill, increases the bus load significantly, can trigger errors and only solves a problem that doesn't exist for Loxone (protecting against commercial product piracy) without actually protecting against them.
 
 
 #### Extension and Device

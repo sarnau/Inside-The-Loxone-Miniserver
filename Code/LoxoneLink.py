@@ -12,6 +12,8 @@ import copy
 import Crypto.Cipher.AES
 from enum import IntEnum
 
+import LoxoneAESKeys
+
 def getDeviceType(devType):
     if devType == 0x01:
         return "Extension" # CBusLoxMOREHandler
@@ -68,8 +70,6 @@ def getDeviceType(devType):
     elif devType == 0x17:
         return "AO Extension"
     return "device[0x%02X]" % devType
-
-
 def getDeviceSubType(devType):
     #  if devType==1: return "Air Base"
     #  elif devType==2: return "Air MultiExtension"
@@ -136,7 +136,7 @@ def getDeviceSubType(devType):
     elif devType == 0x8008:
         return "LED Spot RGBW Tree Gen 1"
     elif devType == 0x8009:
-        return "NFC Code Touch Tree"
+        return "NFC Code Touch Tree Gen 1"
     elif devType == 0x800A:
         return "Weather Station Tree"
     elif devType == 0x800B:
@@ -165,14 +165,23 @@ def getDeviceSubType(devType):
         return "LED Spot RGBW Tree"
     elif devType == 0x8017:
         return "LED Spot WW Tree"
+    elif devType == 0x8018:
+        return "Power Tree"
+    elif devType == 0x8019:
+        return "Nano 2 Relay Tree"
+    elif devType == 0x801a:
+        return "Ahri Tree"
+    elif devType == 0x801b:
+        return "Magnus Tree"
+    elif devType == 0x801c:
+        return "NFC Code Touch Tree"
     if devType & 0x8000:
         return "treeDev[0x%04X]" % devType
     else:
         return getDeviceType(devType)
 
-
 ###############################################################################
-# Various checksum routines
+# Various hashing routines
 ###############################################################################
 
 # 1-Wire CRC8 calculation
@@ -235,13 +244,161 @@ def stm32_crc32(bytes_arr):
         length -= 4
     return crc
 
+# RC6 encryption/decryption <https://en.wikipedia.org/wiki/RC6>
+def ROR(x, n, bits=32):
+  """rotate right input x, by n bits"""
+  mask = (2**n) - 1
+  mask_bits = x & mask
+  return (x >> n) | (mask_bits << (bits - n))
+def ROL(x, n, bits=32):
+  """rotate left input x, by n bits"""
+  return ROR(x, bits - n,bits)
+def RC6_PrepareKey(str):
+  key = 0
+  for c in str:
+    key += ord(c)
+  return key | 0xFEED0000
+def RC6_GenerateKey(initKey):
+  """generate key s[0... 2r+3] from given input userkey"""
+  L = (((initKey << 8) & 0x100) | (initKey << 24) | (initKey >> 24) | ((initKey >> 8) & 0x10)) & 0xFFFFFFFF
+  r=16 # rounds
+  w=32 # width in bits
+  modulo = 2**32
+  context_s=(2*r+4)*[0]
+  context_s[0]=0xB7E15163
+  for i in range(1,2*r+4):
+    context_s[i]=(context_s[i-1]+0x9E3779B9)%(2**w)
+  l = [L]
+  enlength = 1
+  v = 3*max(enlength,2*r+4)
+  A=B=i=j=0
+  for index in range(0,v):
+    A = context_s[i] = ROL((context_s[i] + A + B)%modulo,3)
+    B = l[j] = ROL((l[j] + A + B)%modulo,(A+B)%32) 
+    i = (i + 1) % (2*r + 4)
+    j = (j + 1) % enlength
+  return context_s
+def RC6_EncryptBlock(context,encoded):
+  A,B,C,D = struct.unpack('<IIII', encoded)
+  r=16
+  w=32
+  modulo = 2**32
+  lgw = 5
+  C = (C - context[2*r+3])%modulo
+  A = (A - context[2*r+2])%modulo
+  for j in range(1,r+1):
+    i = r+1-j
+    (A, B, C, D) = (D, A, B, C)
+    u_temp = (D*(2*D + 1))%modulo
+    u = ROL(u_temp,lgw)
+    t_temp = (B*(2*B + 1))%modulo 
+    t = ROL(t_temp,lgw)
+    tmod=t%32
+    umod=u%32
+    C = (ROR((C-context[2*i+1])%modulo,tmod)  ^u)  
+    A = (ROR((A-context[2*i])%modulo,umod)   ^t) 
+  D = (D - context[1])%modulo 
+  B = (B - context[0])%modulo
+  return struct.pack('<IIII', A,B,C,D)
+def RC6_DecryptBlock(context,encoded):
+  A,B,C,D = struct.unpack('<IIII', encoded)
+  r=16
+  w=32
+  modulo = 2**32
+  lgw = 5
+  B = (B + context[0])%modulo
+  D = (D + context[1])%modulo 
+  for i in range(1,r+1):
+    t_temp = (B*(2*B + 1))%modulo 
+    t = ROL(t_temp,lgw)
+    u_temp = (D*(2*D + 1))%modulo
+    u = ROL(u_temp,lgw)
+    tmod=t%32
+    umod=u%32
+    A = (ROL(A^t,umod) + context[2*i])%modulo 
+    C = (ROL(C^u,tmod) + context[2*i+ 1])%modulo
+    (A, B, C, D)  =  (B, C, D, A)
+  A = (A + context[2*r + 2])%modulo 
+  C = (C + context[2*r + 3])%modulo
+  return struct.pack('<IIII', A,B,C,D)
+def RC6_Encrypt(context,data):
+  blockSize = 16
+  data += '\0' * (blockSize-1)
+  data = data[:(len(data) / blockSize) * blockSize]
+  result = ''
+  for block in [data[i:i+blockSize] for i in range(0, len(data), blockSize)]:
+    result += RC6_EncryptBlock(context,block)
+  return result
+def RC6_Decrypt(context,data):
+  blockSize = 16
+  result = ''
+  for block in [data[i:i+blockSize] for i in range(0, len(data), blockSize)]:
+    result += RC6_DecryptBlock(context,block)
+  return result
+
+def RSHash(key):
+    # it seems a and b are switched by Loxone
+    a = 63689
+    hash = 0
+    for i in range(len(key)):
+        hash = hash * a + ord(key[i])
+        hash = hash & 0xFFFFFFFF
+        a = a * 378551
+    return hash
+
+def JSHash(key):
+    hash = 1315423911
+    for i in range(len(key)):
+        hash ^= (hash >> 2) + ord(key[i]) + (hash * 32)
+        hash = hash & 0xFFFFFFFF
+    return hash
+
+def DJBHash(key):
+    hash = 5381
+    for i in range(len(key)):
+        hash += hash * 32 + ord(key[i])
+        hash = hash & 0xFFFFFFFF
+    return hash
+
+def DEKHash(key):
+    hash = len(key)
+    for i in range(len(key)):
+        hash = ((hash << 5) ^ (hash >> 27)) ^ ord(key[i])
+        hash = hash & 0xFFFFFFFF
+    return hash
+
+def BPHash(key):
+    hash = 0
+    for i in range(len(key)):
+        hash = (hash << 7) ^ ord(key[i])
+        hash = hash & 0xFFFFFFFF
+    return hash
+
 ###############################################################################
 # A CAN bus message for the Loxone system
 ###############################################################################
+fragmentPool = dict()
 class LoxMessageFragment(object):
+    # this is used to be forwarded all arriving messages,
+    # which allows to combine fragmented packages
+    @classmethod
+    def fragmentForMessage(cls, message):
+        global fragmentPool
+        hashValue = 0
+        if type(message) is LoxCanLegacyMessage:
+            hashValue = (message.serial & 0x0FFFFFFF) | (int(message.isServerMessage != 0) << 28)
+        else:
+            hashValue = (message.deviceNAT) | (message.extensionNAT << 8) | (int(message.isServerMessage != 0) << 16)
+        if hashValue not in fragmentPool:
+            fragment = LoxMessageFragment()
+            fragmentPool[hashValue] = fragment
+        else:
+            fragment = fragmentPool[hashValue]
+        return fragment
+
     def __init__(self):
         self.Command = None  # the command is part of a fragmented package
-        self.Size = 0
+        self.Size = None
         # depending on the format of the fragmented package,
         # this can be up to 64kb large.
         self.Checksum = None
@@ -249,7 +406,6 @@ class LoxMessageFragment(object):
         # a STM32 CRC32 instead. This is used to confirm that the message
         # was fully received
         self.Data = None  # bytearray() of all the data
-
 
 class LoxCanMessage(object):
     def __init__(self):
@@ -330,7 +486,6 @@ class LoxCanMessage(object):
             self.val32 % 1000,
         )
 
-
 class LoxCanLegacyMessage(LoxCanMessage):
 
     # this is not working, it is here just for reference
@@ -339,6 +494,8 @@ class LoxCanLegacyMessage(LoxCanMessage):
             return "# Air send container %s" % (binascii.hexlify(data))
         elif cmd == 0x01:
             return "# Air send MAC container %s" % (binascii.hexlify(data))
+        elif cmd == 0x02:  # C485V
+            pass
         elif cmd == 0x04:
             external = (data[3] << 24) | (data[2] << 16) | (data[1] << 8) | (data[0])
             page = (data[5] << 8) | (data[4])
@@ -350,6 +507,10 @@ class LoxCanLegacyMessage(LoxCanMessage):
             return "# Send Retry Page External:%#08x address:%08X %s" % (external, address, binascii.hexlify(data[8:]))
         elif cmd == 0x06:
             return "# Send Config Data %s" % (binascii.hexlify(data))
+        elif cmd == 0x07:  # Dali
+            pass
+        elif cmd == 0x08:  # Dali
+            pass
         elif cmd == 0x09:
             offset = 0
             if data[0] == 0x00 and data[1] == 0x00 and data[2] == 0x00 and data[3] == 0x00:
@@ -360,6 +521,8 @@ class LoxCanLegacyMessage(LoxCanMessage):
                 return '# Send Webservice Request "%s"' % (printfStr)
             else:
                 return '# Send Webservice Request ""'
+        elif cmd == 0x0A:  # C232
+            pass
         elif cmd == 0x0B:  # C485V
             return "# Send Webservice %s" % (binascii.hexlify(data))
         elif cmd == 0x0C:
@@ -576,31 +739,27 @@ class LoxCanLegacyMessage(LoxCanMessage):
         )
 
     @classmethod
-    def addMessage(cls, fragment, message):
+    def addMessage(cls, message):
+        fragment = LoxMessageFragment.fragmentForMessage(message)
         message.isFragmentedPackage = False
         if message.command == LoxCanLegacyMessage.LoxCmd.SendFragmented:  # Fragmented package - up to 1530 bytes large (6 bytes * 255 packages)
             packageIndex = message.data[1]  # 0=header, 1…255=packages
             if packageIndex == 0x00:  # header
                 fragment.Command = LoxCanLegacyMessage.LoxCmd(message.data[2])
                 fragment.Size = message.val32 & 0xFFFF
-                fragment.Checksum = (
-                    message.val32 >> 16
-                ) & 0xFFFF  # actually a SUM16 over all bytes, not a CRC
-                fragment.Data = None
-            else:
-                if fragment.Data:
-                    fragment.Data += message.data[2:]
-                else:
-                    fragment.Data = message.data[2:]
-                if len(fragment.Data) >= fragment.Size and fragment.Size > 0:
+                fragment.Checksum = (message.val32 >> 16) & 0xFFFF  # actually a SUM16 over all bytes, not a CRC
+                fragment.Data = '\0' * fragment.Size
+            elif fragment.Data != None:
+                fragment.Data = fragment.Data[:(packageIndex-1)*6] + message.data[2:] + fragment.Data[packageIndex*6:]
+                if packageIndex * 6 >= fragment.Size and fragment.Size > 0:
                     fragment.Data = fragment.Data[: fragment.Size]
                     # add the complete command to the message
                     message.data = chr(0) + fragment.Data
                     message.isFragmentedPackage = True
                     message.command = fragment.Command
-                    fragment.Command = None
-                    fragment.Size = None
-                    fragment.Checksum = None
+                    fragment.Command = 0x00
+                    fragment.Size = 0
+                    fragment.Checksum = 0
                     fragment.Data = None
         elif message.command == LoxCanLegacyMessage.LoxCmd.SendFragmentedLargeDataData:  # Large fragmented package header (less than 64kb package size)
             fragment.Command = LoxCanLegacyMessage.LoxCmd(message.data[2])
@@ -617,9 +776,9 @@ class LoxCanLegacyMessage(LoxCanMessage):
                 message.data = chr(0) + fragment.Data
                 message.command = fragment.Command
                 message.isFragmentedPackage = True
-                fragment.Command = None
-                fragment.Size = None
-                fragment.Checksum = None
+                fragment.Command = 0x00
+                fragment.Size = 0
+                fragment.Checksum = 0
                 fragment.Data = None
 
     @property
@@ -1060,7 +1219,6 @@ class LoxCanLegacyMessage(LoxCanMessage):
         else:
             return "???"
 
-
 class LoxCanNATMessage(LoxCanMessage):
     class xCanID_t(IntEnum):
         # starting from 0x00: general commands
@@ -1077,6 +1235,8 @@ class LoxCanNATMessage(LoxCanMessage):
         Send_Config_Data = 0x11
         WebServicesText = 0x12
         DeviceLog = 0x13
+        AlarmMode = 0x14
+        InternormMonitorData = 0x15
         CAN_Diagnosis_Reply = 0x16
         CAN_Diagnosis_Request = 0x17
         CAN_Error_Reply = 0x18
@@ -1085,10 +1245,14 @@ class LoxCanNATMessage(LoxCanMessage):
         Tree_Shortcut_Test = 0x1B
         KNX_Send_Telegram = 0x1C
         KNX_Group_Address_Config = 0x1D
+        GroupIdentify = 0x1E # 16-bit:array element count, 16-bit: flag, 32-bit: ???, 6-byte array:[32-bit:serial, 8-bit:index , 8-bit:filler]
+        Tree_LinkSnifferPacker = 0x1F
 
-        # starting from 0x90Version_Request: getter/setter values commands
+        # starting from 0x90: getter/setter values commands
         Digital_Value = 0x80
         Analog_Value = 0x81
+        Internorm_Digital_Value = 0x82
+        Internorm_Analog_Value = 0x83
         RGBW = 0x84
         Frequency = 0x85
         AccessCodeInput = 0x86
@@ -1097,6 +1261,7 @@ class LoxCanNATMessage(LoxCanMessage):
         TreeKeypad_Send = 0x89
         Composite_White = 0x8A
         Composite_RGBW_magic = 0x8A
+        TreeInternormDataPacket = 0x8D
 
         # starting from 0x90: encrypted commands
         CryptoValueDigital = 0x90  # after decryption maps to Digital_Value
@@ -1104,10 +1269,14 @@ class LoxCanNATMessage(LoxCanMessage):
         CryptoValueAccessCodeInput = 0x92  # after decryption maps to AccessCodeInput
         CryptoNfcId = 0x93
         CryptoKeyPacket = 0x94
-        CryptoDeviceIdResponse = 0x98
+        CryptoDeviceIdReply = 0x98
         CryptoDeviceIdRequest = 0x99
-        CryptoChallengeRequestFromServer = 0x9A
-        CryptoChallengeRequestToServer = 0x9B
+        CryptoChallengeRollingKeyReply = 0x9A
+        CryptoChallengeRollingKeyRequest = 0x9B
+        CryptoChallengeRequest = 0x9C # needed starting version 10.3.11.10
+        CryptoChallengeReply = 0x9D
+
+        Update_New = 0xEF
 
         # starting from 0xF0: NAT assignments, large packages, update, etc
         Fragment_Start = 0xF0
@@ -1115,6 +1284,7 @@ class LoxCanNATMessage(LoxCanMessage):
         Update_Reply = 0xF3
         Identify_Unknown_Extensions = 0xF4
         KNX_Monitor = 0xF5
+        Internorm_Learn_Feedback = 0xFA
         Search_Devices = 0xFB
         Search_Reply = 0xFC
         NAT_Offer = 0xFD
@@ -1192,7 +1362,8 @@ class LoxCanNATMessage(LoxCanMessage):
         )
 
     @classmethod
-    def addMessage(cls, fragment, message):
+    def addMessage(cls, message):
+        fragment = LoxMessageFragment.fragmentForMessage(message)
         if message.command == LoxCanNATMessage.xCanID_t.Fragment_Start:
             fragment.Command = LoxCanNATMessage.xCanID_t(message.data[1])
             fragment.Size = message.val16
@@ -1208,10 +1379,10 @@ class LoxCanNATMessage(LoxCanMessage):
                 fragment.Data = fragment.Data[: fragment.Size]
                 if fragment.Checksum != stm32_crc32(fragment.Data):
                     print("# CRC ERROR %lx!=%lx %s" % (fragment.Checksum, stm32_crc32(fragment.Data), binascii.hexlify(fragment.Data)))
-                    return
-                # add the complete command to the message
-                message.command = fragment.Command
-                message.data = chr(message.deviceNAT) + fragment.Data
+                else:
+                    # add the complete command to the message
+                    message.command = fragment.Command
+                    message.data = chr(message.deviceNAT) + fragment.Data
                 fragment.Command = None
                 fragment.Size = None
                 fragment.Checksum = None
@@ -1487,7 +1658,7 @@ class CANBus_USBtin(object):
 
     def send(self, message):
         s = "T%08x8%s\r" % (message.address, binascii.hexlify(message.data))
-        # print('Sent %08x : %s' % (message.address, binascii.hexlify(message.data)))
+        #print('Sent %08x : %s' % (message.address, binascii.hexlify(message.data)))
         self.serial.write(s)
         time.sleep(0.010)  # to avoid overflows after 4 packages send quickly in a row
 
@@ -1534,6 +1705,10 @@ class LoxBusLegacyExtension(object):
         self.serial = serial
         self.hardwareVersion = hardwareVersion
         self.version = version
+        encryptedAESKey = binascii.unhexlify(LoxoneCryptoEncryptedAESKey)
+        self.CryptoCanAlgoKey = [DEKHash(encryptedAESKey), JSHash(encryptedAESKey), DJBHash(encryptedAESKey), RSHash(encryptedAESKey)]
+        encryptedAESIV = binascii.unhexlify(LoxoneCryptoEncryptedAESIV)
+        self.CryptoCanAlgoIV = [DEKHash(encryptedAESIV), JSHash(encryptedAESIV), DJBHash(encryptedAESIV), RSHash(encryptedAESIV)]
         self.reset()
 
     def reset(self):
@@ -1547,7 +1722,6 @@ class LoxBusLegacyExtension(object):
         self.firmwareUpdateData = bytearray()
         self.firmwareUpdateCRCs = []
         self.firmwareNewVersion = 0
-        self.sendFragments = LoxMessageFragment()
 
     def sendCommandWithValues(self, command, val8, val16, val32):
         if self.isMuted:
@@ -1560,7 +1734,7 @@ class LoxBusLegacyExtension(object):
         msg.val16 = val16
         msg.val32 = val32
         self.canbus.send(msg)
-        msg.addMessage(self.sendFragments, msg)
+        msg.addMessage(msg)
 
     def sendCommandWithVersion(self, command):
         msg = LoxCanLegacyMessage()
@@ -1569,7 +1743,46 @@ class LoxBusLegacyExtension(object):
         msg.command = command
         msg.val32 = self.version
         self.canbus.send(msg)
-        msg.addMessage(self.sendFragments, msg)
+        msg.addMessage(msg)
+
+    def CryptoCanAlgo_DecryptInitPacket(self, data, serial):
+        # pre-calculate the AES key/iv based on constant data and the serial number
+        aesKey = [0] * 4
+        aesIV = [0] * 4
+        for i in range(0, 4):
+            aesKey[i] = (~serial ^ self.CryptoCanAlgoKey[i]) & 0xFFFFFFFF
+            aesIV[i] = (serial ^ self.CryptoCanAlgoIV[i]) & 0xFFFFFFFF
+        key = struct.pack("<LLLL", aesKey[0], aesKey[1], aesKey[2], aesKey[3])
+        iv = struct.pack("<LLLL", aesIV[0], aesIV[1], aesIV[2], aesIV[3])
+        decipher = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
+        return decipher.decrypt(bytes(data))
+
+    def CryptoCanAlgo_DecryptDataPacket(self, data, key, iv):
+        key = struct.pack("<LLLL", iv ^ key[0], iv ^ key[1], iv ^ key[2], iv ^ key[3])
+        iv = struct.pack("<LLLL", iv, iv, iv, iv)
+        decipher = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
+        return decipher.decrypt(bytes(data))
+
+    def CryptoCanAlgo_EncryptDataPacket(self, data, key, iv):
+        key = struct.pack("<LLLL", iv ^ key[0], iv ^ key[1], iv ^ key[2], iv ^ key[3])
+        iv = struct.pack("<LLLL", iv, iv, iv, iv)
+        decipher = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
+        return decipher.encrypt(bytes(data))
+
+    def CryptoCanAlgo_SolveChallenge(self, random, serial, deviceID):
+        buffer = deviceID + struct.pack("<LL", random, serial)
+        xorStr = ''
+        for i in range(len(buffer)):
+            xorStr += chr(ord(buffer[i]) ^ 0xA5)
+        return (
+            [
+                RSHash(buffer),
+                JSHash(buffer),
+                DJBHash(buffer),
+                DEKHash(buffer),
+            ],
+            RSHash(xorStr),
+        )
 
     def msTimer(self, msTime):
         if self.forceStartMessage:
@@ -1652,7 +1865,7 @@ class LoxBusLegacyExtension(object):
                             msg.val15 = pageNo
                             msg.val32 = calcCRC
                             self.canbus.send(msg)
-                            msg.addMessage(self.sendFragments, msg)
+                            msg.addMessage(msg)
                             checksumValid = False
                     if checksumValid:
                         self.firmwareNewVersion = message.val32
@@ -1668,7 +1881,56 @@ class LoxBusLegacyExtension(object):
             print("# packetMulticastExtension %s" % (message))
         pass
 
+    def send_fragmented_package(self, fragmentedCommand, fragData):
+        fragLength = len(fragData)
+        fragData += chr(0) * 6 # to avoid an out-of-bounds below
+
+        msg = LoxCanLegacyMessage()
+        msg.serial = self.serial
+        msg.isServerMessage = False
+        msg.command = LoxCanLegacyMessage.LoxCmd.SendFragmented
+        msg.data[1] = 0x00 # header
+        msg.data[2] = 0x19 # fragmented command
+        msg.data[3] = 0x00 # unused
+        msg.data[4] = fragLength & 0xFF
+        msg.data[5] = fragLength >> 8
+        checksum = 0
+        for val in fragData:
+            checksum += ord(val)
+        msg.data[6] = checksum & 0xFF
+        msg.data[7] = (checksum >> 8) & 0xFF
+        self.canbus.send(msg)
+        msg.addMessage(msg)
+
+        index = 1
+        for offset in range(0,fragLength,6):
+            msg.data[1] = index
+            index += 1
+            msg.data[2] = fragData[0+offset]
+            msg.data[3] = fragData[1+offset]
+            msg.data[4] = fragData[2+offset]
+            msg.data[5] = fragData[3+offset]
+            msg.data[6] = fragData[4+offset]
+            msg.data[7] = fragData[5+offset]
+            self.canbus.send(msg)
+            msg.addMessage(msg)
+
     def packetToExtension(self, message):
+        if message.isFragmentedPackage:
+            if message.command == 0x18: # CryptoChallengeRequest
+                decryptedData = self.CryptoCanAlgo_DecryptInitPacket(message.data[1:], self.serial)
+                magic, randomValue, zero, zero = struct.unpack("<LLLL", decryptedData)
+                if magic == 0xdeadbeef: # valid request?
+                    # this seems to be the master device ID for all devices
+                    cryptoCanMasterDeviceID = binascii.unhexlify(LoxoneCryptoMasterDeviceID)
+                    self.cryptoKey,self.cryptoIV = self.CryptoCanAlgo_SolveChallenge(randomValue, self.serial, cryptoCanMasterDeviceID)
+
+                    # send a reply to confirm the authorization
+                    cryptoReply = struct.pack("<LL", 0xDEADBEEF, random.randrange(0xFFFFFFFF))
+                    cryptoReply += chr(0xa5) * 8
+                    encrypted_package = self.CryptoCanAlgo_EncryptDataPacket(cryptoReply, self.cryptoKey,self.cryptoIV)
+                    self.send_fragmented_package(0x19, encrypted_package)
+            return
         if message.command == LoxCanLegacyMessage.LoxCmd.send_identify:
             self.isDeviceIdentified = True
             self.isMuted = False
@@ -1700,6 +1962,8 @@ class LoxBusLegacyExtension(object):
             )
         elif message.command == LoxCanLegacyMessage.LoxCmd.MuteExtension:
             self.isMuted = True
+        elif message.command == LoxCanLegacyMessage.LoxCmd.SendFragmented:
+            pass
         else:
             print("# packetToExtension %s" % (message))
         pass
@@ -1741,7 +2005,7 @@ class LoxBusExtensionRelay(LoxBusLegacyExtension):
         print("### Relay Status %#x" % (self.hwDigitalOutBitmask))
 
     def __init__(self, canbus, serial):
-        LoxBusLegacyExtension.__init__(self, canbus, (serial & 0xFFFFFF) | (0x0B << 24), 1, 9000822)
+        LoxBusLegacyExtension.__init__(self, canbus, (serial & 0xFFFFFF) | (0x0B << 24), 1, 10031107)
 
     def reset(self):
         self.hwDigitalOutBitmask = 0x0000
@@ -1810,7 +2074,7 @@ class LoxBusExtension(LoxBusLegacyExtension):
         msg.data[1] = highBitMask
         msg.val32 = val0
         self.canbus.send(msg)
-        msg.addMessage(self.sendFragments, msg)
+        msg.addMessage(msg)
 
     def sendCommandConfigAcknowledge(self, cfgBitmask):
         if cfgBitmask & 0x8000:
@@ -1826,7 +2090,7 @@ class LoxBusExtension(LoxBusLegacyExtension):
                 msg.val16 = self.configBitmask
                 msg.val32 = self.version
                 self.canbus.send(msg)
-                msg.addMessage(self.sendFragments, msg)
+                msg.addMessage(msg)
 
     def convertValueToMilliseconds(self, value):
         msValue = value >> 3
@@ -1850,29 +2114,29 @@ class LoxBusExtension(LoxBusLegacyExtension):
         pass
 
     def __init__(self, canbus, serial):
-        LoxBusLegacyExtension.__init__(self, canbus, (serial & 0xFFFFFF) | (0x01 << 24), 1, 9000822)
+        LoxBusLegacyExtension.__init__(self, canbus, (serial & 0xFFFFFF) | (0x01 << 24), 1, 10031107)
 
     def reset(self):
         self.forceSendTemperature = False
 
         self.analogInForceValueFlag = False
-        self.analogInCurrentValues = [0, 0, 0, 0]
-        self.analogInAverageSum = [0, 0, 0, 0]
-        self.analogInAverageCounter = [0, 0, 0, 0]
-        self.analogInMinTimeChangeValues = [0, 0, 0, 0]
-        self.analogInDelayValues = [0, 0, 0, 0]
-        self.analogInLastTime = [0, 0, 0, 0]
-        self.hwAnalogInValues = [0, 0, 0, 0]
+        self.analogInCurrentValues = [0] * 4
+        self.analogInAverageSum = [0] * 4
+        self.analogInAverageCounter = [0] * 4
+        self.analogInMinTimeChangeValues = [0] * 4
+        self.analogInDelayValues = [0] * 4
+        self.analogInLastTime = [0] * 4
+        self.hwAnalogInValues = [0] * 4
 
         self.digitalInForceFrequencyFlag = False
         self.digitalInForceFlag = False
-        self.digitalInValues = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.digitalInFreqCounterFlag = [False, False, False, False, False, False, False, False, False, False, False, False]
-        self.digitalInFreqCounter = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.digitalInFreqLastTransmittedCounter = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.digitalInValues = [0] * 12
+        self.digitalInFreqCounterFlag = [False] * 12
+        self.digitalInFreqCounter = [0] * 12
+        self.digitalInFreqLastTransmittedCounter = [0] * 12
         self.digitalInFreqTransmitCounter = 0
-        self.digitalInTime = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-        self.digitalInThrottleTime = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        self.digitalInTime = [0] * 12
+        self.digitalInThrottleTime = [0] * 12
         self.digitalInThrottleBitmask = 0x0000
         self.digitalInLastFreqBitmask = 0x0000
         self.digitalInLastTransmittedBitmask = 0x0000
@@ -1880,20 +2144,20 @@ class LoxBusExtension(LoxBusLegacyExtension):
         self.hwDigitalInBitmask = 0x0000  # 12 bits representing the state of the actual hardware
 
         self.analogOutForceValueFlag = False
-        self.analogOutTargetValues = [0, 0, 0, 0]
-        self.analogOutCurrentValues = [0, 0, 0, 0]
-        self.analogOutLastSetValues = [0, 0, 0, 0]
-        self.analogOutPerceptionFlag = [False, False, False, False]  # True => newValue = (value * value / 1000)
-        self.analogOutFadeCounter = [0, 0, 0, 0]
-        self.analogOutFadeCounterMaxValue = [0, 0, 0, 0]
-        self.analogOutFadeOffset = [0, 0, 0, 0]
-        self.analogOutDirectionFlag = [0, 0, 0, 0]  # -1:below target value, 0:value reached, 1:above target value
+        self.analogOutTargetValues = [0] * 4
+        self.analogOutCurrentValues = [0] * 4
+        self.analogOutLastSetValues = [0] * 4
+        self.analogOutPerceptionFlag = [False] * 4  # True => newValue = (value * value / 1000)
+        self.analogOutFadeCounter = [0] * 4
+        self.analogOutFadeCounterMaxValue = [0] * 4
+        self.analogOutFadeOffset = [0] * 4
+        self.analogOutDirectionFlag = [0] * 4  # -1:below target value, 0:value reached, 1:above target value
 
-        self.hwAnalogOutValues = [0, 0, 0, 0]  # 0…0xFFF representing the state of the actual hardware
+        self.hwAnalogOutValues = [0] * 4  # 0…0xFFF representing the state of the actual hardware
         self.hwDigitalOutBitmask = 0x00  # 8 bits representing the state of the actual hardware
         self.shutdownFlag = False  # emergency shutdown active? (Temperature too high, here:constant, just for testing)
         self.temperature = 70.3  # current temperature (here:constant, just for testing)
-        self.configChecksum = bytearray([0, 0, 0, 0, 0, 0, 0])
+        self.configChecksum = bytearray([0] * 7)
         self.configBitmask = 0x0000
         LoxBusLegacyExtension.reset(self)
 
@@ -1985,7 +2249,7 @@ class LoxBusExtension(LoxBusLegacyExtension):
                             msg.data[6] = freqBuffer[5]
                             msg.data[7] = freqBuffer[6]
                             self.canbus.send(msg)
-                            msg.addMessage(self.sendFragments, msg)
+                            msg.addMessage(msg)
                             pkgIndex = 0
             if pkgIndex != 0:
                 msg = LoxCanLegacyMessage()
@@ -2000,7 +2264,7 @@ class LoxBusExtension(LoxBusLegacyExtension):
                 msg.data[6] = freqBuffer[5]
                 msg.data[7] = freqBuffer[6]
                 self.canbus.send(msg)
-                msg.addMessage(self.sendFragments, msg)
+                msg.addMessage(msg)
             self.digitalInForceFrequencyFlag = False
         self.digitalInLastFreqBitmask = hwDigitalInBitmask
 
@@ -2163,7 +2427,7 @@ class LoxBusExtension(LoxBusLegacyExtension):
                 message.isServerMessage = False
                 message.command = LoxCanLegacyMessage.LoxCmd.AnalogOutputInit
                 self.canbus.send(message)
-                message.addMessage(self.sendFragments, message)
+                message.addMessage(message)
         elif message.command == LoxCanLegacyMessage.LoxCmd.DigitalInputSensitivity0 or message.command == LoxCanLegacyMessage.LoxCmd.DigitalInputSensitivity1 or message.command == LoxCanLegacyMessage.LoxCmd.DigitalInputSensitivity2:
             inputOffset = 0
             if message.command == LoxCanLegacyMessage.LoxCmd.DigitalInputSensitivity1:
@@ -2206,7 +2470,7 @@ class LoxBusExtension(LoxBusLegacyExtension):
                 msg.data[6] = self.configChecksum[5]
                 msg.data[7] = self.configChecksum[6]
                 self.canbus.send(msg)
-                msg.addMessage(self.sendFragments, msg)
+                msg.addMessage(msg)
         else:
             LoxBusLegacyExtension.packetToExtension(self, message)
 
@@ -2238,7 +2502,7 @@ class LoxBusNATExtension(object):
             msg.flags = 1
         self.canbus.send(msg)
         self.statistics_sent = self.statistics_sent + 1
-        msg.addMessage(self.sendFragments, msg)
+        msg.addMessage(msg)
 
     def send_command_with_devtype_and_serial(self, command):
         """Send from an extension/device without a valid NAT"""
@@ -2256,7 +2520,7 @@ class LoxBusNATExtension(object):
         msg.type = self.busId
         self.canbus.send(msg)
         self.statistics_sent = self.statistics_sent + 1
-        msg.addMessage(self.sendFragments, msg)
+        msg.addMessage(msg)
 
     def send_fragmented_package(self, command, data):
         """Send a fragmented package"""
@@ -2315,6 +2579,98 @@ class LoxBusNATExtension(object):
         header = struct.pack("<BHL", LoxCanNATMessage.Reason.Alive_Packet, 0, self.configurationCRC)
         self.send_nat_package(LoxCanNATMessage.xCanID_t.Alive_Packet, header)  # Alive
 
+    def CryptoCanAlgo_DecryptInitPacket(self, data, serial):
+        # pre-calculate the AES key/iv based on constant data and the serial number
+        aesKey = [0] * 4
+        aesIV = [0] * 4
+        for i in range(0, 4):
+            aesKey[i] = ~(serial ^ self.CryptoCanAlgoKey[i]) & 0xFFFFFFFF
+            aesIV[i] = (serial ^ self.CryptoCanAlgoIV[i]) & 0xFFFFFFFF
+        key = struct.pack("<LLLL", aesKey[0], aesKey[1], aesKey[2], aesKey[3])
+        iv = struct.pack("<LLLL", aesIV[0], aesIV[1], aesIV[2], aesIV[3])
+        decipher = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
+        return decipher.decrypt(bytes(data))
+
+    def CryptoCanAlgo_DecryptInitPacketLegacy(self, data, serial):
+        # pre-calculate the AES key/iv based on constant data and the serial number
+        aesKey = [0] * 4
+        aesIV = [0] * 4
+        for i in range(0, 4):
+            aesKey[i] = ~(serial ^ self.CryptoCanAlgoLegacyKey[i]) & 0xFFFFFFFF
+            aesIV[i] = (serial ^ self.CryptoCanAlgoLegacyIV[i]) & 0xFFFFFFFF
+        key = struct.pack("<LLLL", aesKey[0], aesKey[1], aesKey[2], aesKey[3])
+        iv = struct.pack("<LLLL", aesIV[0], aesIV[1], aesIV[2], aesIV[3])
+        decipher = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
+        return decipher.decrypt(bytes(data))
+
+    def CryptoCanAlgo_EncryptInitPacketLegacy(self, data, serial):
+        # pre-calculate the AES key/iv based on constant data and the serial number
+        aesKey = [0] * 4
+        aesIV = [0] * 4
+        for i in range(0, 4):
+            aesKey[i] = ~(serial ^ self.CryptoCanAlgoLegacyKey[i]) & 0xFFFFFFFF
+            aesIV[i] = (serial ^ self.CryptoCanAlgoLegacyIV[i]) & 0xFFFFFFFF
+        key = struct.pack("<LLLL", aesKey[0], aesKey[1], aesKey[2], aesKey[3])
+        iv = struct.pack("<LLLL", aesIV[0], aesIV[1], aesIV[2], aesIV[3])
+        decipher = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
+        return decipher.encrypt(bytes(data))
+
+    def CryptoCanAlgo_DecryptDataPacket(self, data, key, iv):
+        key = struct.pack("<LLLL", iv ^ key[0], iv ^ key[1], iv ^ key[2], iv ^ key[3])
+        iv = struct.pack("<LLLL", iv, iv, iv, iv)
+        decipher = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
+        return decipher.decrypt(bytes(data))
+
+    def CryptoCanAlgo_EncryptDataPacket(self, data, key, iv):
+        key = struct.pack("<LLLL", iv ^ key[0], iv ^ key[1], iv ^ key[2], iv ^ key[3])
+        iv = struct.pack("<LLLL", iv, iv, iv, iv)
+        decipher = Crypto.Cipher.AES.new(key, Crypto.Cipher.AES.MODE_CBC, iv)
+        return decipher.encrypt(bytes(data))
+
+    def CryptoCanAlgo_SolveChallenge(self, random, serial, deviceID):
+        buffer = deviceID + struct.pack("<LL", random, serial)
+        xorStr = ''
+        for i in range(len(buffer)):
+            xorStr += chr(ord(buffer[i]) ^ 0xA5)
+        return (
+            [
+                RSHash(buffer),
+                JSHash(buffer),
+                DJBHash(buffer),
+                DEKHash(buffer),
+            ],
+            RSHash(xorStr),
+        )
+
+    def CryptoCanAlgo_SolveChallengeLegacy(self, random, serial, deviceID):
+        buffer = deviceID + struct.pack("<LL", random, serial)
+        return (
+            [
+                RSHash(buffer),
+                JSHash(buffer),
+                DJBHash(buffer),
+                DEKHash(buffer),
+            ],
+            BPHash(buffer),
+        )
+
+    def crypto_update_receive_key(self, forceReply): # send keys to the Miniserver for packages _from_ the Miniserver _to_ the extension/device
+        currentTime = int(round(time.time() * 1000 * 1000))  # seconds timer
+        if self.legacyRequestTimer == None:
+            self.legacyRequestTimer = currentTime
+        if forceReply or (self.legacyRequestTimer + 10 < currentTime): # throttle to every 10s
+            self.legacyRequestTimer = currentTime
+            # send a request for authorization
+            randomValue = random.randrange(0xFFFFFFFF)
+            cryptoReply = struct.pack("<LL", 0xDEADBEEF, randomValue)
+            cryptoReply = cryptoReply.ljust(16, chr(0))
+            self.cryptoReceiveKey,self.cryptoReceiveIV = self.CryptoCanAlgo_SolveChallenge(randomValue, self.serial, self.deviceID)
+            self.send_fragmented_package(
+                LoxCanNATMessage.xCanID_t.CryptoChallengeRollingKeyReply,
+                self.CryptoCanAlgo_EncryptInitPacketLegacy(cryptoReply, self.serial),
+            )
+        pass
+
     def __init__(self, canbus, serial, deviceType, hardwareVersion, version):
         self.canbus = canbus
         self.busId = 0x10  # Tree devices use 0x11
@@ -2322,9 +2678,22 @@ class LoxBusNATExtension(object):
         self.deviceType = deviceType
         self.hardwareVersion = hardwareVersion
         self.version = version
+        # this seems to be the master device ID for all devices
+        self.deviceID = binascii.unhexlify(LoxoneCryptoMasterDeviceID)
         self.configOfflineTimeout = 15 * 60  # default: 15 minutes
         self.configurationCRC = 0x00000000  # no config
         random.seed()
+        encryptedAESKey = binascii.unhexlify(LoxoneCryptoEncryptedAESKey)
+        self.CryptoCanAlgoKey = [DEKHash(encryptedAESKey), JSHash(encryptedAESKey), DJBHash(encryptedAESKey), RSHash(encryptedAESKey)]
+        encryptedAESIV = binascii.unhexlify(LoxoneCryptoEncryptedAESIV)
+        self.CryptoCanAlgoIV = [DEKHash(encryptedAESIV), JSHash(encryptedAESIV), DJBHash(encryptedAESIV), RSHash(encryptedAESIV)]
+        self.CryptoCanAlgoLegacyKey = LoxoneCryptoCanAlgoLegacyKey
+        self.CryptoCanAlgoLegacyIV = LoxoneCryptoCanAlgoLegacyIV
+        self.legacyRequestTimer = None
+        self.cryptoReceiveKey = [0] * 4
+        self.cryptoReceiveIV = 0
+        self.cryptoSendKey = [0] * 4
+        self.cryptoSendIV = 0
         self.reset()
 
     def reset(self):
@@ -2335,7 +2704,6 @@ class LoxBusNATExtension(object):
         self.randomNatInterval = 0
         self.offlineCountdown = 0
         self.lastMsTime = 0
-        self.sendFragments = LoxMessageFragment()
         self.upTime = time.time()
         self.NATStateCounter = 0
         self.statistics_received = 0
@@ -2451,6 +2819,74 @@ class LoxBusNATExtension(object):
         elif message.command == LoxCanNATMessage.xCanID_t.Fragment_Data:
             pass
 
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoValueAccessCodeInput: # only send by the device to the Miniserver
+            print("*** CryptoValueAccessCodeInput")
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoNfcId: # only send by the device to the Miniserver
+            print("*** CryptoNfcId")
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoValueDigital or message.command == LoxCanNATMessage.xCanID_t.CryptoValueAnalog or message.command == LoxCanNATMessage.xCanID_t.CryptoKeyPacket:
+            decryptedData = self.CryptoCanAlgo_DecryptDataPacket(message.data[1:], self.cryptoReceiveKey,self.cryptoReceiveIV)
+            magic, randomValue = struct.unpack("<LL", decryptedData[:8])
+            print("*** CryptoPacket_%02x %08x %08x %s" % (int(message.command), magic, randomValue, binascii.hexlify(decryptedData[8:])))
+            if magic == 0xdeadbeef: # valid request?
+                self.cryptoReceiveIV += 1 # rolling key
+                pass # deal with the package
+            else:
+                self.crypto_update_receive_key(False)
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoDeviceIdRequest: # Miniserver requests the (encrypted) 12 byte internal STM32 serial number. Cached by the Miniserver in /sys/device/settings.bin
+            decryptedData = self.CryptoCanAlgo_DecryptInitPacketLegacy(message.data[1:], self.serial)
+            magic, randomValue, zero, zero = struct.unpack("<LLLL", decryptedData)
+            if magic == 0xdeadbeef: # valid request?
+                # send a reply to confirm the authorization
+                cryptoReply = struct.pack("<LL", 0xDEADBEEF, random.randrange(0xFFFFFFFF))
+                cryptoReply += self.deviceID
+                cryptoReply = cryptoReply.ljust(32, chr(0))
+            else: # invalid request
+                cryptoReply = struct.pack("<LL", 0, random.randrange(0xFFFFFFFF))
+                cryptoReply = cryptoReply.ljust(32, chr(0))
+            self.send_fragmented_package(
+                LoxCanNATMessage.xCanID_t.CryptoDeviceIdReply,
+                self.CryptoCanAlgo_EncryptInitPacketLegacy(cryptoReply, self.serial),
+            )
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoDeviceIdReply: # only received by the Miniserver, never by extensions or devices
+            print("*** CryptoDeviceIdReply")
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoChallengeRollingKeyReply: # server sends keys to encrypt data packages _from_ the extension/device _to_ the Miniserver
+            decryptedData = self.CryptoCanAlgo_DecryptInitPacketLegacy(message.data[1:], self.serial)
+            magic, randomValue, zero, zero = struct.unpack("<LLLL", decryptedData)
+            print("*** CryptoChallengeRollingKeyReply %08x %08x %08x%08x" % (magic, randomValue, zero, zero))
+            if magic == 0xdeadbeef: # valid request?
+                self.cryptoSendKey,self.cryptoSendIV = self.CryptoCanAlgo_SolveChallenge(randomValue, self.serial, self.deviceID)
+                self.sendDefaults()
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoChallengeRollingKeyRequest: # server requests keys to encrypt data packages _from_ the Miniserver _to_ the extension/device
+            decryptedData = self.CryptoCanAlgo_DecryptInitPacketLegacy(message.data[1:], self.serial)
+            magic, randomValue, zero, zero = struct.unpack("<LLLL", decryptedData)
+            print("*** CryptoChallengeRollingKeyRequest %08x %08x %08x%08x" % (magic, randomValue, zero, zero))
+            self.crypto_update_receive_key(True)
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoChallengeRequest: # Authorization Challenge to identify valid devices (new in 10.3.11.6 or later)
+            decryptedData = self.CryptoCanAlgo_DecryptInitPacket(message.data[1:], self.serial)
+            magic, randomValue, zero, zero = struct.unpack("<LLLL", decryptedData)
+            if magic == 0xdeadbeef: # valid request?
+                self.cryptoKey,self.cryptoIV = self.CryptoCanAlgo_SolveChallenge(randomValue, self.serial, self.deviceID)
+
+                # send a reply to confirm the authorization
+                cryptoReply = struct.pack("<LL", 0xDEADBEEF, random.randrange(0xFFFFFFFF))
+                cryptoReply += chr(0xa5) * 8
+                encPacket = self.CryptoCanAlgo_EncryptDataPacket(cryptoReply, self.cryptoKey,self.cryptoIV)
+                self.send_fragmented_package(
+                    LoxCanNATMessage.xCanID_t.CryptoChallengeReply,
+                    self.CryptoCanAlgo_EncryptDataPacket(cryptoReply, self.cryptoKey,self.cryptoIV),
+                )
+        elif message.command == LoxCanNATMessage.xCanID_t.CryptoChallengeReply: # Validate Authorization Challenge keys to identify valid devices (new in 10.3.11.6 or later)
+            decryptedData = self.CryptoCanAlgo_DecryptDataPacket(message.data[1:], self.cryptoKey,self.cryptoIV),
+            magic, randomValue, zero, zero = struct.unpack("<LLLL", decryptedData)
+            if magic == 0xdeadbeef: # valid request?
+                # send a reply to confirm the authorization
+                cryptoReply = struct.pack("<LL", 0xDEADBEEF, random.randrange(0xFFFFFFFF))
+                cryptoReply += chr(0xa5) * 8
+                self.send_fragmented_package(
+                    LoxCanNATMessage.xCanID_t.CryptoChallengeReply,
+                    self.CryptoCanAlgo_EncryptDataPacket(cryptoReply, self.cryptoKey,self.cryptoIV),
+                )
+
     def packetBroadcastToNAT(self, message):
         if message.command == LoxCanNATMessage.xCanID_t.Version_Request:
             if message.val32 == self.serial:
@@ -2490,6 +2926,8 @@ class LoxBusNATExtension(object):
                     self.extensionNAT = newNat
                     self.setDeviceState(2)  # online
                     self.send_version_package(LoxCanNATMessage.xCanID_t.Start, LoxCanNATMessage.Reason.Pairing)
+                    if (message.data[2] & 4) == 0:  # rolling key encryption?
+                        self.crypto_update_receive_key(True) # send keys to the Miniserver, so the extension/device can receive encrypted packages
                     if (message.data[2] & 2) == 0:  # no default values requested?
                         self.sendDefaults()
 
@@ -2505,7 +2943,7 @@ class LoxBusDIExtension(LoxBusNATExtension):
 
     def __init__(self, canbus, serial):
         diExtensionType = 0x0014
-        LoxBusNATExtension.__init__(self,canbus,(serial & 0xFFFFFF) | (diExtensionType << 24),diExtensionType,0,9021122)
+        LoxBusNATExtension.__init__(self,canbus,(serial & 0xFFFFFF) | (diExtensionType << 24),diExtensionType,0,10031108)
 
     def sentBitmask(self):
         self.send_nat_package(LoxCanNATMessage.xCanID_t.Digital_Value,struct.pack("<BHI", 0, 0, self.hardwareBitmask))
@@ -2588,7 +3026,7 @@ class LoxBusTreeBaseExtension(LoxBusNATExtension):
         treeBusExtensionType = 0x0013
         self.wiredDevicesLeftBranch = []
         self.wiredDevicesRightBranch = []
-        LoxBusNATExtension.__init__(self,canbus,(serial & 0xFFFFFF) | (treeBusExtensionType << 24),treeBusExtensionType,0,9030305)
+        LoxBusNATExtension.__init__(self,canbus,(serial & 0xFFFFFF) | (treeBusExtensionType << 24),treeBusExtensionType,0,10031125)
 
     def reset(self):
         LoxBusNATExtension.reset(self)
@@ -2688,7 +3126,7 @@ class LoxBusTreeBaseExtension(LoxBusNATExtension):
         else:
             if message.command == LoxCanNATMessage.xCanID_t.CAN_Diagnosis_Request:
                 if message.val16 != 0:  # request for left/right branch?
-                    header = struct.pack("<BBL", message.val16, 0, 0, 0)
+                    header = struct.pack("<BBL", message.val16, 0, 0)
                     self.send_nat_package(LoxCanNATMessage.xCanID_t.CAN_Diagnosis_Reply, header)
                     return
             elif message.command == LoxCanNATMessage.xCanID_t.CAN_Error_Request:
@@ -2710,6 +3148,8 @@ class LoxBusTreeBaseClass(LoxBusNATExtension):
     def __init__(self, canbus, serial, deviceType, hardwareVersion, version):
         LoxBusNATExtension.__init__(self, canbus, serial, deviceType, hardwareVersion, version)
         self.busId = 0x11  # a tree device
+        # Tree devices use a custom device ID
+        self.deviceID = struct.pack("<LLL",self.serial,self.serial,self.serial)
 
     def msTimer(self, msTime):
         LoxBusNATExtension.msTimer(self, msTime)
@@ -2734,7 +3174,7 @@ class LoxBusTreeAlarmSiren(LoxBusTreeBaseClass):
         self.hardwareSendTemperature = False # currently this seems to be disabled in the hardware
         self.configOfflineHardwareState = 0 # status of strobe and alarm sound if device is offline
         self.configMaxAudibleAlarmDelay = 90 # timeout for the siren
-        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8012, 0, 10000903)
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8012, 0, 10031114)
 
     def sendTamperStatus(self):
         self.send_nat_package(LoxCanNATMessage.xCanID_t.Digital_Value,struct.pack("<BHI", 0, 0, self.hardwareTamperStatus))
@@ -2812,7 +3252,7 @@ class LoxBusTreeAlarmSiren(LoxBusTreeBaseClass):
 ###############################################################################
 class LoxBusTreeLEDSpotRGBW(LoxBusTreeBaseClass):
     def __init__(self, canbus, serial):
-        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8016, 0, 10000725)
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8016, 0, 10031111)
 
     def packetToNAT(self, message):
         if message.command == LoxCanNATMessage.xCanID_t.RGBW:  # Standard Actuator
@@ -2873,7 +3313,7 @@ class LoxBusTreeLEDSpotRGBW(LoxBusTreeBaseClass):
 ###############################################################################
 class LoxBusTreeRGBW24VDimmer(LoxBusTreeBaseClass):
     def __init__(self, canbus, serial):
-        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x800C, 0, 10000725)
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x800C, 0, 10031108)
 
     def packetToNAT(self, message):
         if message.command == LoxCanNATMessage.xCanID_t.RGBW:  # Standard Actuator
@@ -2909,6 +3349,7 @@ class LoxBusTreeRGBW24VDimmer(LoxBusTreeBaseClass):
             LoxBusTreeBaseClass.packetToNAT(self, message)
 
     def configUpdate(self):
+        self.configData += chr(0) * 12
         self.configLossRed, self.configLossGreen, self.configLossBlue, self.configLossWhite, self.configFadeRed, self.configFadeGreen, self.configFadeBlue, self.configFadeWhite, self.typeRed, self.typeGreen, self.typeBlue, self.typeWhite = struct.unpack("<BBBBBBBBBBBB", self.configData[:12])
         # Loss of Connection: Value in %% (0…100%), 101% = Retain Last State
         # Fade Rate (only used for Standard Actuator Type, not for the Smart one): 0% = Jump, 1…100%
@@ -2929,7 +3370,7 @@ class LoxBusTreeRGBW24VDimmer(LoxBusTreeBaseClass):
 ###############################################################################
 class LoxBusTreeTouch(LoxBusTreeBaseClass):
     def __init__(self, canbus, serial):
-        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8003, 0, 10000725)
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8003, 0, 10031114)
 
     def configUpdate(self):
         self.unknown, self.audibleAcknowledgement = struct.unpack("<LB", self.configData)
@@ -2941,7 +3382,7 @@ class LoxBusTreeTouch(LoxBusTreeBaseClass):
 ###############################################################################
 class LoxBusTreeRoomComfortSensor(LoxBusTreeBaseClass):
     def __init__(self, canbus, serial):
-        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8010, 0, 10000725)
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8010, 0, 10031111)
 
 
 ###############################################################################
@@ -2949,7 +3390,7 @@ class LoxBusTreeRoomComfortSensor(LoxBusTreeBaseClass):
 ###############################################################################
 class LoxBusTreeCorridorLight(LoxBusTreeBaseClass):
     def __init__(self, canbus, serial):
-        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8006, 0, 10000820)
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8006, 0, 10031111)
 
 
 ###############################################################################
@@ -2957,7 +3398,7 @@ class LoxBusTreeCorridorLight(LoxBusTreeBaseClass):
 ###############################################################################
 class LoxBusTreeLeaf(LoxBusTreeBaseClass):
     def __init__(self, canbus, serial):
-        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8014, 0, 10000912)
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8014, 0, 10031111)
 
     def packetToNAT(self, message):
         if message.command == LoxCanNATMessage.xCanID_t.Digital_Value:
@@ -2991,7 +3432,7 @@ class LoxBusTreeLeaf(LoxBusTreeBaseClass):
 ###############################################################################
 class LoxBusTreeWeatherStation(LoxBusTreeBaseClass):
     def __init__(self, canbus, serial):
-        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x800a, 0, 10000725)
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x800a, 0, 10031111)
 
     def configUpdate(self):
         self.send_nat_package(LoxCanNATMessage.xCanID_t.Digital_Value,struct.pack("<BHI", 0, 0, 0xFF))
@@ -3003,33 +3444,54 @@ class LoxBusTreeWeatherStation(LoxBusTreeBaseClass):
         )
 
 
+###############################################################################
+# Emulate NFC Code Touch Tree
+###############################################################################
+class LoxBusTreeNFCCodeTouchTree(LoxBusTreeBaseClass):
+    def __init__(self, canbus, serial):
+        random.seed()
+        LoxBusTreeBaseClass.__init__(self, canbus, serial, 0x8009, 0, 10031111)
+
+    def packetToNAT(self, message):
+        if message.command == LoxCanNATMessage.xCanID_t.Digital_Value:
+            print("Keypad Buzzer Alarm %s" % (((message.val32 >> 3) & 1) == 1))
+        elif message.command == LoxCanNATMessage.xCanID_t.Analog_Value:
+            print("Keypad Analog Value %d" % (message.val32))
+        elif message.command == LoxCanNATMessage.xCanID_t.RGBW:
+            print("Keypad RGB %x : %d,%d,%d" % (message.data[1],message.data[4],message.data[5],message.data[6]))
+        elif message.command == LoxCanNATMessage.xCanID_t.TreeKeypad_Send:
+            print("Keypad Mode %04x %04x" % (message.val32 & 0xF, (message.val32 >> 16) & 0xFFFF))
+
+        LoxBusNATExtension.packetToNAT(self, message)
+
+
 canbus = CANBus_USBtin(False)
 
 devices = []
 treeExt = LoxBusTreeBaseExtension(canbus, 0x13112233)
 #for devId in range(0x8001,0x801a):
 #    treeExt.addDevice(LoxBusTreeBaseClass(canbus, 0xbb000000 + devId, devId, 0, 10010820))
- treeExt.addDevice(LoxBusTreeAlarmSiren(canbus, 0xbb008012))
-# treeExt.addDevice(LoxBusTreeLEDSpotRGBW(canbus, 0xBB008016))
-# treeExt.addDevice(LoxBusTreeTouch(canbus,0xb0aabbcc),False)
-# treeExt.addDevice(LoxBusTreeCorridorLight(canbus,0xbb000001),False)
-# treeExt.addDevice(LoxBusTreeRoomComfortSensor(canbus,0xb0998899),True)
-# treeExt.addDevice(LoxBusTreeRGBW24VDimmer(canbus,0xb0998899),True)
-# treeExt.addDevice(LoxBusTreeWeatherStation(canbus,0xb0aa8899),True)
+#treeExt.addDevice(LoxBusTreeNFCCodeTouchTree(canbus, 0xbbaa8009))
+#treeExt.addDevice(LoxBusTreeAlarmSiren(canbus, 0xbb008012))
+#treeExt.addDevice(LoxBusTreeLEDSpotRGBW(canbus, 0xBB008016))
+#treeExt.addDevice(LoxBusTreeTouch(canbus,0xb0aabbcc),False)
+#treeExt.addDevice(LoxBusTreeCorridorLight(canbus,0xbb000001),False)
+#treeExt.addDevice(LoxBusTreeRoomComfortSensor(canbus,0xb0998899),True)
+#treeExt.addDevice(LoxBusTreeRGBW24VDimmer(canbus,0xb0998899),True)
+#treeExt.addDevice(LoxBusTreeWeatherStation(canbus,0xb0aa8899),True)
 
 
 devices.append(treeExt)  # Tree Base Extension
-devices.append(LoxBusAIExtension(canbus,0x00010000)) # AI Extension
-devices.append(LoxBusAOExtension(canbus,0x00020000)) # AO Extension
-devices.append(LoxBusExtensionRelay(canbus,0x0FF0A01))
-devices.append(LoxBusExtension(canbus,0x0FF0A00))
-devices.append(LoxBusDIExtension(canbus,0x14123456)) # DI Extension
+#devices.append(LoxBusAIExtension(canbus,0x00010000)) # AI Extension
+#devices.append(LoxBusAOExtension(canbus,0x00020000)) # AO Extension
+#devices.append(LoxBusExtensionRelay(canbus,0x0FF0A01)) # Relay Extension
+#devices.append(LoxBusExtension(canbus,0x0FF0A00)) # Extension
+#devices.append(LoxBusDIExtension(canbus,0x14123456)) # DI Extension
 
-fragment = LoxMessageFragment()
 while True:
     message = canbus.receive()
     if message:
-        message.addMessage(fragment, message)
+        message.addMessage(message)
         print(message)
         for device in devices:
             device.canPacket(message)
