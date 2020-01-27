@@ -17,6 +17,8 @@ I am also providing a collection of Python scripts for the Miniserver, feel free
 - Miniserver Firmware
     - [Loxone SD Card Hardware](LoxoneSDCards.md)
     - [Loxone SD Card Format](LoxoneSDCardFormat.md)
+- Network/Internet communication
+    - [Loxone Miniserver Networking](LoxoneMiniserverNetworking.md)
 - Loxone Link Protocol
     - [Loxone Link Hardware](LoxoneLinkHardware.md)
     - [Loxone Link Protocol Introduction](LoxoneLinkProtocolIntro.md)
