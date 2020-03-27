@@ -12,7 +12,7 @@ import copy
 import Crypto.Cipher.AES
 from enum import IntEnum
 
-import LoxoneAESKeys
+from LoxoneAESKeys import *
 
 def getDeviceType(devType):
     if devType == 0x01:
@@ -3473,7 +3473,7 @@ treeExt = LoxBusTreeBaseExtension(canbus, 0x13112233)
 #    treeExt.addDevice(LoxBusTreeBaseClass(canbus, 0xbb000000 + devId, devId, 0, 10010820))
 #treeExt.addDevice(LoxBusTreeNFCCodeTouchTree(canbus, 0xbbaa8009))
 #treeExt.addDevice(LoxBusTreeAlarmSiren(canbus, 0xbb008012))
-#treeExt.addDevice(LoxBusTreeLEDSpotRGBW(canbus, 0xBB008016))
+treeExt.addDevice(LoxBusTreeLEDSpotRGBW(canbus, 0xBB008016))
 #treeExt.addDevice(LoxBusTreeTouch(canbus,0xb0aabbcc),False)
 #treeExt.addDevice(LoxBusTreeCorridorLight(canbus,0xbb000001),False)
 #treeExt.addDevice(LoxBusTreeRoomComfortSensor(canbus,0xb0998899),True)
