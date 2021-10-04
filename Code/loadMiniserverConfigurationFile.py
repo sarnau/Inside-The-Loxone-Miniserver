@@ -4,8 +4,7 @@
 import struct
 import ftplib
 import zipfile
-import StringIO
-import sys
+from io import BytesIO
 
 # Load the most recent version of the currently active configuration file
 # from the Miniserver via FTP.
@@ -36,21 +35,18 @@ ftp.login(adminUsername, adminPassword)
 ftp.cwd('prog')
 filelist = []
 for line in ftp.nlst():
-  filename = line[38:] # skip all the stuff in front of the filename
+  filename = line
   if filename.startswith('sps_'):
     if filename.endswith('.zip') or filename.endswith('.LoxCC'):
       filelist.append(filename)
 filename = sorted(filelist)[-1]
 
-data = []
-def handle_binary(more_data):
-    data.append(more_data)
-
-resp = ftp.retrbinary("RETR /prog/"+filename, callback=handle_binary)
-data = "".join(data)
+download_file = BytesIO()
+ftp.retrbinary("RETR /prog/"+filename, download_file.write)
+download_file.seek(0)
 ftp.quit()
 
-zf = zipfile.ZipFile(StringIO.StringIO(data))
+zf = zipfile.ZipFile(download_file)
 with zf.open('sps0.LoxCC') as f:
     header, = struct.unpack('<L', f.read(4))
     if header == 0xaabbccee:    # magic word to detect a compressed file
@@ -59,7 +55,7 @@ with zf.open('sps0.LoxCC') as f:
         # header4 could be a checksum, I don't know
         data = f.read(compressedSize)
         index = 0
-        resultStr = ''
+        resultStr = bytearray()
         while index<len(data):
             # the first byte contains the number of bytes to copy in the upper
             # nibble. If this nibble is 15, then another byte follows with
@@ -71,7 +67,7 @@ with zf.open('sps0.LoxCC') as f:
             copyBytes = byte >> 4
             byte &= 0xf
             if copyBytes == 15:
-                copyBytes += ord(data[index])
+                copyBytes += data[index]
                 index += 1
             if copyBytes > 0:
                 resultStr += data[index:index+copyBytes]
@@ -101,5 +97,5 @@ with zf.open('sps0.LoxCC') as f:
                 else:
                     resultStr += resultStr[-bytesBack:-bytesBack+1]
                 bytesBackCopied -= 1
-        with open('Project.Loxone', "w") as f:
+        with open('Project.Loxone', "wb") as f:
             f.write(resultStr)
