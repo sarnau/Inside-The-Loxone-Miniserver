@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import struct
 import ftplib
 import zipfile
+import zlib
 from io import BytesIO
 
 # Load the most recent version of the currently active configuration file
@@ -35,9 +36,8 @@ ftp.login(adminUsername, adminPassword)
 ftp.cwd('prog')
 filelist = []
 for line in ftp.nlst():
-  filename = line
-  if filename.startswith('sps_'):
-    if filename.endswith('.zip') or filename.endswith('.LoxCC'):
+  filename = line[38:]
+  if filename.startswith('sps_') and (filename.endswith('.zip') or filename.endswith('.LoxCC')):
       filelist.append(filename)
 filename = sorted(filelist)[-1]
 
@@ -46,13 +46,14 @@ ftp.retrbinary("RETR /prog/"+filename, download_file.write)
 download_file.seek(0)
 ftp.quit()
 
+#with open(filename, "wb") as f:
+#   f.write(download_file.read())
+
 zf = zipfile.ZipFile(download_file)
 with zf.open('sps0.LoxCC') as f:
     header, = struct.unpack('<L', f.read(4))
     if header == 0xaabbccee:    # magic word to detect a compressed file
-        compressedSize,header3,header4, = struct.unpack('<LLL', f.read(12))
-        # header3 is roughly the length of the uncompressed data, but it is a bit higher
-        # header4 could be a checksum, I don't know
+        compressedSize,uncompressedSize,checksum, = struct.unpack('<LLL', f.read(12))
         data = f.read(compressedSize)
         index = 0
         resultStr = bytearray()
@@ -67,8 +68,12 @@ with zf.open('sps0.LoxCC') as f:
             copyBytes = byte >> 4
             byte &= 0xf
             if copyBytes == 15:
-                copyBytes += data[index]
-                index += 1
+                while True:
+                    addByte = data[index]
+                    copyBytes += addByte
+                    index += 1
+                    if addByte != 0xff:
+                        break
             if copyBytes > 0:
                 resultStr += data[index:index+copyBytes]
                 index += copyBytes
@@ -97,5 +102,11 @@ with zf.open('sps0.LoxCC') as f:
                 else:
                     resultStr += resultStr[-bytesBack:-bytesBack+1]
                 bytesBackCopied -= 1
+        if checksum != zlib.crc32(resultStr):
+            print('Checksum is wrong')
+            sys.exit(1)
+        if len(resultStr) != uncompressedSize:
+            print('Uncompressed filesize is wrong %d != %d' % (len(resultStr),uncompressedSize))
+            sys.exit(1)
         with open('Project.Loxone', "wb") as f:
             f.write(resultStr)
