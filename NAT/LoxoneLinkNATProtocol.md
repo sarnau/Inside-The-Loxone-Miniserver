@@ -120,22 +120,30 @@ The 4-bit devices type from legacy devices was replaced by 16-bit value in NAT e
 
 | Device Type | Extension |
 | --------- | -------- |
-|  `0x01`   | Air Base Extension V2 (unreleased?) |
-|  `0x04`   | DMX Extension V2 (unreleased?) |
+|  `0x01`   | Extension |
+|  `0x02`   | Dimmer Extension |
+|  `0x03`   | EnOcean Extension |
+|  `0x04`   | DMX Extension |
 |  `0x05`   | 1-Wire Extension V2 (unreleased?) |
-|  `0x06`   | RS232 Extension V2 (unreleased?) |
-|  `0x07`   | RS485 Extension V2 (unreleased?) |
-|  `0x09`   | Modbus Extension V2 (unreleased?) |
+|  `0x06`   | RS232 Extension |
+|  `0x07`   | RS485 Extension |
+|  `0x08`   | IR Extension |
+|  `0x09`   | Modbus Extension |
 |  `0x0A`   | RGBW 24V Dimmer V2 (unreleased?) |
-|  `0x0B`   | Relay Extension V2 (unreleased?) |
-|  `0x0F`   | Fröling Extension V2 (unreleased?) |
+|  `0x0B`   | Relay Extension |
+|  `0x0D`   | Dali Extension |
+|  `0x0F`   | Fröling Extension |
 |  `0x11`   | reserved for the Tree Bus |
 |  `0x12`   | Internorm Extension |
 |  `0x13`   | Tree Base Extension |
 |  `0x14`   | DI Extension |
-|  `0x15`   | KNX Extension (unreleased) |
-|  `0x16`   | AI Extension |
+|  `0x15`   | KNX Extension |
+|  `0x16`   | AI Extension V1 |
 |  `0x17`   | AO Extension |
+|  `0x18`   | Schüco Extension |
+|  `0x19`   | AI Extension |
+|  `0x0C`   | Air Base Extension |
+
 |  `0x8001` | Valve Actuator Tree |
 |  `0x8002` | Motion Sensor Tree |
 |  `0x8003` | Touch Tree |
@@ -163,8 +171,14 @@ The 4-bit devices type from legacy devices was replaced by 16-bit value in NAT e
 |  `0x8019` | Nano 2 Relay Tree |
 |  `0x801a` | Ahri Tree (unreleased) |
 |  `0x801b` | Magnus Tree (unreleased) |
-|  `0x801c` | NFC Code Touch Tree (unreleased) |
-
+|  `0x801c` | NFC Code Touch Tree |
+|  `0x801d` | Tree to Air Bridge |
+|  `0x801e` | Nano Motor Controller Tree |
+|  `0x801f` | Touch Pure Flex Tree |
+|  `0x8020` | Belimo Tree |
+|  `0x8021` | Power Supply & Backup |
+|  `0x8022` | Touch Pure CO2 Tree |
+|  `0x8023` | Wallbox 11kW 16A Tree |
 
 ## NAT Commands
 
