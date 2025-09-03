@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-# Tested with Loxone Miniserver version 10.3.11.27
+# Tested with Loxone Miniserver version 16.0.6.10
 
 import struct
 import ftplib
@@ -50,8 +50,25 @@ ftp.login(adminUsername, adminPassword)
 
 ftp.cwd('update')
 
-# get the firmware version number from the first file
-version = ftp.nlst()[0].split(' ')[-1].split('_')[0]
+# get the firmware version number from the first .upd file
+files = []
+ftp.retrlines('NLST', files.append)  # Get just filenames
+# Parse filenames from directory listing if needed
+clean_files = []
+for f in files:
+    if f.endswith('.upd'):
+        # Extract just the filename from full listing format
+        filename = f.split()[-1] if ' ' in f else f
+        clean_files.append(filename)
+
+if not clean_files:
+    print("No .upd files found!")
+    ftp.quit()
+    sys.exit(1)
+
+version = clean_files[0].split('_')[0]
+print("Detected version: %s" % version)
+print("Target file: %s_B1E1424BFF667AF471D715EE6745FDF0.upd" % version)
 
 # Load DigitalInputTree update into a buffer
 sio = StringIO.StringIO()
